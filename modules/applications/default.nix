@@ -32,6 +32,7 @@
     # ./keymapper.nix
     ./krita.nix
     ./lazygit.nix
+    ./libreoffice.nix
     ./lutris.nix
     ./nix-tree.nix
     ./nixd.nix
