@@ -40,6 +40,7 @@
     ./obsidian.nix
     ./picard.nix
     ./pinta.nix
+    ./postman.nix
     ./prism.nix
     ./protonplus.nix
     # ./python.nix
