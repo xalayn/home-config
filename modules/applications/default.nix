@@ -21,7 +21,7 @@
     ./gammaray.nix
     ./ghostty
     ./gcolor3.nix
-    ./ghq.nix
+    ./ghq.nixT
     ./gimp.nix
     ./git.nix
     ./github-desktop.nix

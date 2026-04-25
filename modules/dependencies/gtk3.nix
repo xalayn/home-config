@@ -2,6 +2,7 @@
 {
   gtk = {
     enable = true;
+    colorScheme = "dark";
   };
 
   home.packages = with pkgs; [
