@@ -3,6 +3,7 @@
     # ./affinity.nix
     ./android-studio.nix
     ./android-tools.nix
+    ./apostrophe.nix
     ./bash
     ./beets.nix
     ./blender.nix
