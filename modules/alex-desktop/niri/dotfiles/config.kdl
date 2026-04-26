@@ -468,7 +468,7 @@ binds {
     // Mod+T { spawn "bash" "-c" "notify-send hello && exec alacritty"; }
 
     // Start files
-    Mod+E { spawn "nautilus" "-w"; }
+    Mod+E { spawn "thunar" "-w"; }
     Mod+Ctrl+H { spawn "systemctl" "hibernate"; }
    
     // Example volume keys mappings for PipeWire & WirePlumber.
