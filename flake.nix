@@ -32,7 +32,7 @@
 
     xalaynix-wrappers = {
       url = "github:alex-kumpula/xalaynix-wrappers";
-      inputs.nixpkgs.follows = "nixpkgs";
+      # inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
