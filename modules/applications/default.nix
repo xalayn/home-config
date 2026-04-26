@@ -61,6 +61,7 @@
     ./yazi.nix
     ./yt-dlp.nix
     ./wl-color-picker.nix
+    ./zed-editor.nix
     ./zoom.nix
   ];
 }
