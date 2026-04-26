@@ -29,6 +29,11 @@
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    xalaynix-wrappers = {
+      url = "github:alex-kumpula/xalaynix-wrappers";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {

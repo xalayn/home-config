@@ -60,6 +60,7 @@
     ./xdotool.nix
     ./yazi.nix
     ./yt-dlp.nix
+    ./wezterm.nix
     ./wl-color-picker.nix
     ./zed-editor.nix
     ./zoom.nix
