@@ -1,6 +1,6 @@
 { pkgs, inputs, ... }:
 {
   home.packages = [
-    inputs.xalaynix-wrappers.wezterm
+    inputs.xalaynix-wrappers.packages.${pkgs.system}.wezterm
   ];
 }
