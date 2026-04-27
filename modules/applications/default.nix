@@ -33,6 +33,7 @@
     # ./input-remapper.nix
     # ./keymapper.nix
     ./krita.nix
+    ./lazydocker.nix
     ./lazygit.nix
     ./libreoffice.nix
     ./lutris.nix
