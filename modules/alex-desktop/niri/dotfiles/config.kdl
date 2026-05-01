@@ -718,5 +718,8 @@ binds {
     //   WINDOW RULES   //
     //////////////////////
 
-    
+    window-rule {
+        match app-id=r#"^org\.wezfurlong\.wezterm$"#
+        default-column-width { proportion 0.5; }
+    }
 }
