@@ -436,6 +436,11 @@ window-rule {
     clip-to-geometry true
 }
 
+window-rule {
+    match app-id=r#"^org\.wezfurlong\.wezterm$"#
+    default-column-width { proportion 0.5; }
+}
+
 binds {
     // Keys consist of modifiers separated by + signs, followed by an XKB key name
     // in the end. To find an XKB name for a particular key, you may use a program
@@ -713,13 +718,4 @@ binds {
     // Powers off the monitors. To turn them back on, do any input like
     // moving the mouse or pressing any other key.
     Mod+Shift+P { power-off-monitors; }
-
-    //////////////////////
-    //   WINDOW RULES   //
-    //////////////////////
-
-    window-rule {
-        match app-id=r#"^org\.wezfurlong\.wezterm$"#
-        default-column-width { proportion 0.5; }
-    }
 }
