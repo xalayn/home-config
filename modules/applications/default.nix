@@ -19,6 +19,7 @@
     ./ffmpeg.nix
     ./filezilla.nix
     ./firefox.nix
+    ./floorp.nix
     ./gammaray.nix
     ./ghostty
     ./gcolor3.nix
