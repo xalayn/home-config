@@ -59,6 +59,7 @@
     ./tauon.nix
     ./tor.nix
     ./unityhub.nix
+    ./vesktop.nix
     ./virt-viewer.nix
     ./vscode-fsh.nix
     ./xdotool.nix
