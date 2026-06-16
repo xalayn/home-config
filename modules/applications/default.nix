@@ -43,6 +43,7 @@
     ./nixd.nix
     ./obs-studio.nix
     ./obsidian.nix
+    ./openbox.nix
     ./picard.nix
     ./pinta.nix
     ./postman.nix
@@ -63,6 +64,7 @@
     ./virt-viewer.nix
     ./vscode-fsh.nix
     ./xdotool.nix
+    ./xwayland.nix
     ./yazi.nix
     ./yt-dlp.nix
     ./wezterm.nix
