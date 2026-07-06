@@ -34,6 +34,12 @@
       url = "github:alex-kumpula/xalaynix-wrappers";
       # inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # TWWH3 Profile Manager
+    twwh3-profile-manager = {
+      url = "github:xalayn/TWW3-Mod-Profile-Manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {

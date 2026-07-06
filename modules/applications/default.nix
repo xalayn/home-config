@@ -56,6 +56,7 @@
     ./shortwave.nix
     # ./steam.nix
     ./transmission.nix
+    ./tww3-mod-profile-manager.nix
     ./xremap
     ./tauon.nix
     ./tor.nix
