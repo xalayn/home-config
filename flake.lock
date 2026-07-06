@@ -698,6 +698,7 @@
         "nixpkgs": "nixpkgs_4",
         "nixpkgs-unstable": "nixpkgs-unstable",
         "nixvim": "nixvim",
+        "twwh3-profile-manager": "twwh3-profile-manager",
         "xalaynix-wrappers": "xalaynix-wrappers"
       }
     },
@@ -785,6 +786,26 @@
       "original": {
         "owner": "numtide",
         "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "twwh3-profile-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1783368605,
+        "narHash": "sha256-JfGDItP1uIDIwgVIANa/ydJcQ9Qd13+iDy7Rc1jXTjM=",
+        "owner": "xalayn",
+        "repo": "TWW3-Mod-Profile-Manager",
+        "rev": "092f7268be0989b8b27c15538a26bece25d1ba42",
+        "type": "github"
+      },
+      "original": {
+        "owner": "xalayn",
+        "repo": "TWW3-Mod-Profile-Manager",
         "type": "github"
       }
     },
