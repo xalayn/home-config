@@ -796,11 +796,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1783513028,
-        "narHash": "sha256-fDE8824lCbQSUivI1Ze5dTQ74p8bMfmjje5MaLjfomA=",
+        "lastModified": 1783514747,
+        "narHash": "sha256-sX9BFltVTQHhpV1lpsbwsd0y9nNauVWbpyVgeei6V9A=",
         "owner": "xalayn",
         "repo": "TWW3-Mod-Profile-Manager",
-        "rev": "265575356045c360841e7a02902e0f00535363c0",
+        "rev": "09d24e3321a638a6503c9618583f98063e56afaa",
         "type": "github"
       },
       "original": {
