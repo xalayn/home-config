@@ -33,6 +33,7 @@
     ./inkscape.nix
     ./google-chrome
     # ./input-remapper.nix
+    ./kdeconnect.nix
     # ./keymapper.nix
     ./krita.nix
     ./lazydocker.nix
