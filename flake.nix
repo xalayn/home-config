@@ -64,6 +64,12 @@
       "x86_64-darwin"
     ];
 
+    homePkgs = import nixpkgs {
+      system = "x86_64-linux";
+      config.allowUnfree = true;
+      overlays = [ affinity-nix.overlays.default ];
+    };
+
     mySpecialArgs = {
       inherit inputs outputs;
       # To use packages from nixpkgs-unstable,
@@ -112,13 +118,13 @@
     homeConfigurations = {
       # FIXME - DONE replace with your username@hostname
       "alex" = home-manager.lib.homeManagerConfiguration {
-        pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
+        pkgs = homePkgs; # Home-manager requires 'pkgs' instance
         extraSpecialArgs = mySpecialArgs;
         modules = [
           # > Our main home-manager configuration file <
           ./homes/alex/home.nix
           {
-            home.packages = [affinity-nix.packages.x86_64-linux.v3];
+            home.packages = [homePkgs.affinity-v3];
           }
         ];
       };

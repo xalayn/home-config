@@ -1,6 +1,6 @@
 { pkgs, ... }:
 {
-  home.packages = with pkgs; [
-    helvum
+  home.packages = [
+    pkgs.crosspipe
   ];
 }

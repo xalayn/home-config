@@ -2,7 +2,7 @@
 
 { pkgs, ... }:
 {
-  home.packages = with pkgs; [
-    transmission
+  home.packages = [
+    pkgs.transmission_4
   ];
 }
