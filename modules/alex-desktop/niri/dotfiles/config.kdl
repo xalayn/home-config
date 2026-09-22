@@ -355,9 +355,10 @@ window-rule {
     open-floating true
 }
 
-// Keep niri's focus-ring background from showing through transparent Firefox regions.
+// Keep niri's focus-ring background from showing through transparent browser regions.
 window-rule {
     match app-id=r#"firefox$"#
+    match app-id=r#"^floorp$"#
     draw-border-with-background false
 }
 
