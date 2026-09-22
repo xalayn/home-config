@@ -2,89 +2,86 @@
 
 set -euo pipefail
 
-FLAKEPATH="$HOME/Documents/nix-configs/pinned-nix-configs"
-FLAKEHOST="alex-laptop"
-FLAKEHOME="alex"
+flake_path="$HOME/Documents/nix-configs/pinned-nix-configs"
+flake_host="alex-laptop"
+flake_home="alex"
 
 usage() {
-    echo "Usage: $0 [options]"
-    echo "Options:"
-    echo "  -s    Rebuild system config"
-    echo "  -h    Rebuild home config"
-    echo "  -f    Update flake (default on if either -s or -h is used)"
-    echo "  -n    Skip flake update"
-    echo "  -a    Do both system and home (default if no -s/-h given)"
-    echo "  -?    Show this help"
-    exit 1
+    cat <<'EOF'
+Usage: nix-update [options]
+
+Options:
+  -s    Rebuild only the system configuration
+  -h    Rebuild only the Home Manager configuration
+  -a    Rebuild both (the default)
+  -f    Update the shared flake lock (the default)
+  -n    Do not update the shared flake lock
+  -p    Pause before exiting (used by the desktop launcher)
+  -?    Show this help
+EOF
 }
 
 do_system=false
 do_home=false
 do_flake=true
+pause_on_exit=false
+OPTERR=0
 
-# Parse options
-while getopts "shfan" opt; do
-    case "$opt" in
+while getopts "shfanp" option; do
+    case "$option" in
         s) do_system=true ;;
         h) do_home=true ;;
         f) do_flake=true ;;
         n) do_flake=false ;;
         a) do_system=true; do_home=true ;;
-        ?) usage ;;
+        p) pause_on_exit=true ;;
+        ?) usage; exit 0 ;;
     esac
 done
 
-# Default to both if nothing specified
+pause_before_exit() {
+    local status=$?
+    trap - EXIT
+    printf '\n'
+    read -r -p "Press Enter to close this window..." || true
+    exit "$status"
+}
+
+if $pause_on_exit; then
+    trap pause_before_exit EXIT
+fi
+
 if ! $do_system && ! $do_home; then
     do_system=true
     do_home=true
 fi
 
-cd "$FLAKEPATH"
+if [[ ! -f "$flake_path/flake.nix" ]]; then
+    printf 'Pinned flake not found: %s\n' "$flake_path" >&2
+    exit 1
+fi
+
+cd "$flake_path"
 
 if $do_flake; then
-    echo "🔄 Updating flake... 🔄"
-    if nix flake update; then
-        echo "✅ Flake update successful! ✅"
-        if git diff --quiet flake.lock; then
-            echo "ℹ️  No changes in flake.lock"
-        else
-            echo "💾 Committing flake.lock update..."
-            git add flake.lock
-            git commit -m "Update flake.lock ($(date +%Y-%m-%d))"
-            if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
-                echo "📤 Pushing to remote..."
-                git push
-            else
-                echo "⚠️  No upstream branch set, skipping push"
-            fi
-        fi
-    else
-        echo "❌ Flake update failed. ❌"
-        exit 1
-    fi
-    echo ""
+    printf '\n%s\n' '🔄 Updating the shared flake lock...'
+    nix flake update
+    printf '%s\n' '✅ Shared flake lock updated.'
 fi
 
 if $do_system; then
-    echo "🔨 Rebuilding and switching system configuration for host $FLAKEHOST... 🔨"
-    if sudo nixos-rebuild switch --flake ".#$FLAKEHOST"; then
-        echo "✅ System successfully rebuilt and switched! ✅"
-    else
-        echo "❌ System rebuild failed. ❌"
-        exit 1
-    fi
-    echo ""
+    printf '\n🔨 Rebuilding system configuration %s...\n' "$flake_host"
+    sudo nixos-rebuild switch --flake ".#$flake_host"
+    printf '%s\n' '✅ System configuration activated.'
 fi
 
 if $do_home; then
-    echo "🔨 Rebuilding and switching home configuration for user $FLAKEHOME... 🔨"
-    if home-manager switch --flake ".#$FLAKEHOME"; then
-        echo "✅ Home successfully rebuilt and switched! ✅"
-    else
-        echo "❌ Home rebuild failed. ❌"
-        exit 1
-    fi
-    echo ""
+    printf '\n🔨 Rebuilding Home Manager configuration %s...\n' "$flake_home"
+    home-manager switch --flake ".#$flake_home"
+    printf '%s\n' '✅ Home Manager configuration activated.'
 fi
 
+printf '\n%s\n' '🎉 Update complete.'
+if ! git diff --quiet -- flake.lock; then
+    printf '%s\n' 'The pinned flake.lock changed and is ready to review and commit.'
+fi
