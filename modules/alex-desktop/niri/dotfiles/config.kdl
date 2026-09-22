@@ -355,11 +355,25 @@ window-rule {
     open-floating true
 }
 
-// Keep niri's focus-ring background from showing through transparent browser regions.
+// Keep niri's focus-ring background from showing through transparent Firefox regions.
 window-rule {
     match app-id=r#"firefox$"#
+    draw-border-with-background false
+}
+
+// Give Floorp a borderless frosted liquid-glass background.
+window-rule {
     match app-id=r#"^floorp$"#
     draw-border-with-background false
+
+    focus-ring {
+        off
+    }
+
+    background-effect {
+        blur true
+        xray true
+    }
 }
 
 window-rule {
