@@ -1,6 +1,5 @@
 {
   config,
-  pkgs,
   ...
 }:
 {
@@ -43,9 +42,9 @@
     Name=Update Nix System
     GenericName=Nix System Updater
     Comment=Update the shared pinned flake and rebuild NixOS and Home Manager
-    Exec=${pkgs.ghostty}/bin/ghostty -e ${config.home.homeDirectory}/.local/bin/nix-update -p
+    Exec=${config.home.homeDirectory}/.local/bin/nix-update -p
     Icon=system-software-update
-    Terminal=false
+    Terminal=true
     Categories=Settings;System;
   '';
 }
