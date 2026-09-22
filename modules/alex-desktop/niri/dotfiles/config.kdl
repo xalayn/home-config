@@ -355,6 +355,12 @@ window-rule {
     open-floating true
 }
 
+// Keep niri's focus-ring background from showing through transparent Firefox regions.
+window-rule {
+    match app-id=r#"firefox$"#
+    draw-border-with-background false
+}
+
 window-rule {
     match title="Code - OSS"
     opacity 0.9

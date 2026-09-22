@@ -47,4 +47,17 @@
     Terminal=true
     Categories=Settings;System;
   '';
+
+  xdg.dataFile."applications/nix-config-update-home.desktop".text = ''
+    [Desktop Entry]
+    Type=Application
+    Version=1.0
+    Name=Update Home Manager
+    GenericName=Home Manager Updater
+    Comment=Update the shared pinned flake and rebuild only Home Manager
+    Exec=${config.home.homeDirectory}/.local/bin/nix-update -h -p
+    Icon=system-software-update
+    Terminal=true
+    Categories=Settings;System;
+  '';
 }
