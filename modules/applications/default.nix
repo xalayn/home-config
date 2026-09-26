@@ -55,6 +55,7 @@
     # ./renpy.nix # Was causing an insecure package error
     # ./rustup.nix
     ./shortwave.nix
+    ./sourcegit.nix
     # ./steam.nix
     ./transmission.nix
     ./tww3-mod-profile-manager.nix
