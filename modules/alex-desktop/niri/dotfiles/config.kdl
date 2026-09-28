@@ -352,6 +352,8 @@ window-rule {
         saturation 1.4
         noise 0.0
     }
+    
+    draw-border-with-background false
 }
 
 // Work around WezTerm's initial configure bug
