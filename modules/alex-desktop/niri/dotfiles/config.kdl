@@ -336,6 +336,24 @@ animations {
 // Find more information on the wiki:
 // https://github.com/YaLTeR/niri/wiki/Configuration:-Window-Rules
 
+
+// Blur and transparenct
+window-rule {
+    blur {
+        passes 4
+        offset 3
+        noise 0.02
+        saturation 1.3
+    }
+
+    window-rule {
+        background-effect {
+            blur true
+            xray true
+        }
+    }
+}
+
 // Work around WezTerm's initial configure bug
 // by setting an empty default-column-width.
 window-rule {
@@ -368,11 +386,6 @@ window-rule {
 
     focus-ring {
         off
-    }
-
-    background-effect {
-        blur true
-        xray true
     }
 }
 
