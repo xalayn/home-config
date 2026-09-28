@@ -339,16 +339,18 @@ animations {
 
 // Blur and transparenct
 blur {
-    passes 4
-    offset 3
-    noise 0.02
-    saturation 1.3
+    passes 2
+    offset 2
+    noise 0.005
+    saturation 1.6
 }
 
 window-rule {
     background-effect {
         blur true
         xray true
+        saturation 1.4
+        noise 0.0
     }
 }
 

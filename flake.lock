@@ -834,11 +834,11 @@
         "wrapper-modules": "wrapper-modules"
       },
       "locked": {
-        "lastModified": 1790574221,
-        "narHash": "sha256-ovrVzrPBrk2OmisI/xJOa8YUAWrdqPr7SgyqWL2jGaI=",
+        "lastModified": 1790574539,
+        "narHash": "sha256-IVRDL1+s8yvEquM4nw6vlq5jZNEDsuzerjH54dg6HM0=",
         "owner": "alex-kumpula",
         "repo": "xalaynix-wrappers",
-        "rev": "7a9d854630130428a7d77a9004b0c0b4bcd33928",
+        "rev": "94536e5617ab04f843af113ccff0995f2c7df142",
         "type": "github"
       },
       "original": {
