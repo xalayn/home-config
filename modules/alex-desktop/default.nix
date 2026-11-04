@@ -2,6 +2,7 @@
 {
   imports = [
     ./niri
+    ./driftwm
     ./wallpaper
     ./eww
     ./fuzzel
@@ -21,5 +22,6 @@
       enable = true;
       wallpaperPath = config.alex-desktop.wallpaper;
     };
+    driftwm.enable = true;
   };
 }
