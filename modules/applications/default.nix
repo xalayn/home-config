@@ -1,6 +1,5 @@
 {
   imports = [
-    # ./affinity.nix
     ./android-studio.nix
     ./android-tools.nix
     ./apostrophe.nix

@@ -22,9 +22,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Affinity suite for NixOS
-    affinity-nix.url = "github:mrshmllow/affinity-nix";
-
     nixvim = {
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -49,7 +46,6 @@
     home-manager,
     dankMaterialShell,
     niri,
-    affinity-nix,
     nixvim,
     ...
   } @ inputs: let
@@ -67,7 +63,6 @@
     homePkgs = import nixpkgs {
       system = "x86_64-linux";
       config.allowUnfree = true;
-      overlays = [ affinity-nix.overlays.default ];
     };
 
     mySpecialArgs = {
@@ -123,9 +118,6 @@
         modules = [
           # > Our main home-manager configuration file <
           ./homes/alex/home.nix
-          {
-            home.packages = [homePkgs.affinity-v3];
-          }
         ];
       };
     };
