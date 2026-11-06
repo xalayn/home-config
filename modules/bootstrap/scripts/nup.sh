@@ -5,6 +5,9 @@ set -euo pipefail
 flake_path="$HOME/Documents/nix-configs/pinned-nix-configs"
 flake_host="alex-laptop"
 flake_home="alex"
+# Explicit URL so uncommitted edits inside the submodules are always built
+# (plain `.#` can reuse a stale copy when only submodule contents changed).
+flake_url="git+file://$flake_path?submodules=1"
 
 # Config repos pinned as git submodules of the pinned flake.
 config_repos=(system-config home-config)
@@ -116,13 +119,13 @@ fi
 
 if $do_system; then
     printf '\n🔨 Rebuilding system configuration %s...\n' "$flake_host"
-    sudo nixos-rebuild switch --flake ".#$flake_host"
+    sudo nixos-rebuild switch --flake "$flake_url#$flake_host"
     printf '%s\n' '✅ System configuration activated.'
 fi
 
 if $do_home; then
     printf '\n🔨 Rebuilding Home Manager configuration %s...\n' "$flake_home"
-    home-manager switch --flake ".#$flake_home"
+    home-manager switch --flake "$flake_url#$flake_home"
     printf '%s\n' '✅ Home Manager configuration activated.'
 fi
 
