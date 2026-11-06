@@ -6,6 +6,10 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
 
+    # Same pin as system-config: the Phantomat plugin must be built against the
+    # exact Hyprland the system runs (0.56.2; the plugin does not build on 0.57).
+    nixpkgs-hyprland.url = "github:nixos/nixpkgs/e7fe03cce61eebcf570cd294f70cefe3ad76feed";
+
     # Home manager
     home-manager.url = "github:nix-community/home-manager/release-25.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
@@ -91,6 +95,10 @@
         inherit inputs;
         system = "x86_64-linux";
         config.allowUnfree = true;
+      };
+
+      pkgs-hyprland = import inputs.nixpkgs-hyprland {
+        system = "x86_64-linux";
       };
 
       #pkgs-pinned = import nixpkgs-pinned {
