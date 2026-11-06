@@ -28,7 +28,7 @@
     Version=1.0
     Name=Edit Nix Configuration
     GenericName=Nix Configuration Editor
-    Comment=Open the Home Manager and NixOS configuration repositories
+    Comment=Open the pinned Nix configuration repository
     Exec=${config.home.homeDirectory}/.local/bin/nix-edit
     Icon=visual-studio-code
     Terminal=false

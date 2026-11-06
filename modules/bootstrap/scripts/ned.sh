@@ -2,16 +2,16 @@
 
 set -euo pipefail
 
-config_root="$HOME/Documents/nix-configs"
-home_config="$config_root/home-config"
-system_config="$config_root/system-config"
+# The pinned repo contains system-config and home-config as git submodules,
+# so one window covers everything.
+flake_path="$HOME/Documents/nix-configs/pinned-nix-configs"
 
-for config_dir in "$home_config" "$system_config"; do
-    if [[ ! -d "$config_dir" ]]; then
-        printf 'Config directory not found: %s\n' "$config_dir" >&2
-        exit 1
-    fi
-done
+if [[ ! -f "$flake_path/flake.nix" ]]; then
+    printf 'Pinned flake not found: %s\n' "$flake_path" >&2
+    exit 1
+fi
 
-code --new-window "$home_config" &
-code --new-window "$system_config" &
+# Check out the submodules if this is a fresh clone.
+git -C "$flake_path" submodule update --init
+
+code --new-window "$flake_path" &
