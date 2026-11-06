@@ -3,6 +3,7 @@
   imports = [
     ./niri
     ./driftwm
+    ./hyprland
     ./wallpaper
     ./eww
     ./fuzzel
@@ -23,5 +24,6 @@
       wallpaperPath = config.alex-desktop.wallpaper;
     };
     driftwm.enable = true;
+    hyprland.enable = true;
   };
 }
