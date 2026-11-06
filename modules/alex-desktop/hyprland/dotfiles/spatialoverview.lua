@@ -112,7 +112,10 @@ hl.config({
         allow_window_overflow = true,
         snap_viewport_on_pan = true,
         commit_viewport_on_close = true,
-        snap_enabled = true,
+        -- Off: the drag preview follows the mouse freely, but on drop the
+        -- plugin rounds the position to the grid (grid_size, up to half a cell
+        -- per axis), so windows landed somewhere other than where they looked.
+        snap_enabled = false,
         remember_layout = true, -- windows keep their spots across restarts
       },
 

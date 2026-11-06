@@ -27,6 +27,15 @@ hyprlandPlugins.mkHyprlandPlugin (finalAttrs: {
 
   inherit hyprland;
 
+  patches = [
+    # Unmerged upstream PR #8: draw every canvas window through the same
+    # direct-geometry path as the dragged one. Without it, previews of the
+    # other windows could be drawn offset from their real positions whenever
+    # zoom != 100%, so a window lined up against them landed elsewhere on exit.
+    # Drop this once it is merged upstream.
+    ./patches/pr8-preview-displacement.patch
+  ];
+
   buildInputs = [lua5_4 pango cairo];
 
   dontUseCmakeConfigure = true;
