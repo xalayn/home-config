@@ -32,6 +32,22 @@ end
 ------------------
 
 -- See https://wiki.hypr.land/Configuring/Basics/Monitors/
+-- Same layout and scales as niri: laptop panel on the left at scale 1, the
+-- HDMI monitor to its right at 1.25. ("auto" scale picked 1.5 for both, which
+-- made everything, the cursor included, too big.)
+hl.monitor({
+    output   = "eDP-1",
+    mode     = "preferred",
+    position = "0x0",
+    scale    = "1",
+})
+hl.monitor({
+    output   = "HDMI-A-1",
+    mode     = "preferred",
+    position = "1920x0",
+    scale    = "1.25",
+})
+-- anything else that gets plugged in
 hl.monitor({
     output   = "",
     mode     = "preferred",
@@ -56,11 +72,19 @@ local menu        = "fuzzel"
 -- See https://wiki.hypr.land/Configuring/Basics/Autostart/
 -- (mako is started by its home-manager systemd service, so it's not here)
 hl.on("hyprland.start", function ()
+    -- Tell the (shared) user services this is a Hyprland session, then restart
+    -- the portal so it picks xdg-desktop-portal-hyprland (screen sharing,
+    -- Discord's picker) instead of whatever the previous session left behind.
+    hl.exec_cmd("sh -c '"
+        .. "dbus-update-activation-environment --systemd WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE"
+        .. " XDG_CURRENT_DESKTOP=Hyprland XDG_SESSION_DESKTOP=Hyprland XDG_SESSION_TYPE=wayland;"
+        .. " systemctl --user unset-environment NIRI_SOCKET;"
+        .. " systemctl --user start hyprland-session.target;"
+        .. " systemctl --user restart xdg-desktop-portal.service'")
     hl.exec_cmd("waybar")
     hl.exec_cmd("pypr") -- scratchpads, see SCRATCHPADS below
     hl.exec_cmd("waypaper --restore")
 end)
-
 
 -------------------------------
 ---- ENVIRONMENT VARIABLES ----
@@ -318,7 +342,7 @@ hl.config({
 --   3 fingers left/right scrolls the strip of columns
 --   3 fingers up/down switches workspaces
 --   4 fingers up/down opens the overview (see SCROLLOVERVIEW below)
-hl.gesture({ fingers = 3, direction = "horizontal", action = "scroll_move" })
+-- (3 fingers left/right is set up in EDGE WORKSPACES at the end: niri-style)
 -- (the vertical swipes are set up next to the workspace binds below)
 
 
@@ -581,6 +605,12 @@ hl.config({
         workspace_swipe_use_r      = true, -- neighbours are id ± 1 (see above)
         workspace_swipe_create_new = true, -- without the edgeworkspaces plugin: swiping past either end makes an empty one
         workspace_swipe_forever    = true, -- one long swipe can pass several workspaces, like niri
+        -- workspaces follow the fingers at a natural pace (a full workspace per
+        -- ~260 units of travel), but a short swipe or a quick flick is enough to
+        -- switch: letting go past 15% (default 50%) commits, as in niri
+        workspace_swipe_distance           = 260,
+        workspace_swipe_cancel_ratio       = 0.15,
+        workspace_swipe_min_speed_to_force = 15,
     },
 })
 
@@ -764,9 +794,10 @@ if scrolloverviewLoaded() then
                     range   = 40,
                 },
                 input = {
-                    -- One workspace per ~300 units of finger travel, like the swipe outside
-                    -- the overview (the default 1.0 needed over twice that).
-                    touchpad_scroll_factor = 2.2,
+                    -- Workspaces follow the fingers at about the same pace as the swipe
+                    -- outside the overview (the default 1.0 is far slower on the scale-1
+                    -- laptop panel); letting go a fifth of the way moves on.
+                    touchpad_scroll_factor = 3,
                 },
             },
         },
@@ -805,8 +836,10 @@ if okEdges and type(edgesPath) == "string" then
     hl.plugin.load(edgesPath)
 end
 
+local nirilikeLoaded = false
 for _, plugin in ipairs(hl.get_loaded_plugins()) do
     if plugin.name == "edgeworkspaces" then
+        nirilikeLoaded = true
         -- swipes stop at those empty ends instead of making more, as in niri
         hl.config({ gestures = { workspace_swipe_create_new = false } })
     end
@@ -885,4 +918,24 @@ for _, event in ipairs({ "window.open", "window.move_to_workspace", "window.titl
     hl.on(event, function()
         if #shares > 0 then updateShareBorders() end
     end)
+end
+
+-- 3 fingers left/right scrolls the columns. With the plugin it behaves like
+-- niri: on release the view settles where a column lines up with a screen edge,
+-- never past the first or last column, and moves focus one column per swipe.
+-- Without it, Hyprland's own scroll_move (which can leave half the screen empty).
+if nirilikeLoaded then
+    hl.config({
+        plugin = {
+            edgeworkspaces = {
+                swipe_distance  = 1200, -- touchpad travel per screen width of scrolling (niri: 1200; lower = faster)
+                focus_threshold = 0.3,  -- how far into the next window a swipe must go to focus it (0.05 - 1)
+                momentum        = 1,    -- how far a flick carries on after release (1 = like niri, 0 = none)
+                center_columns  = true, -- swipes can also leave a window centred (niri only centres when two don't fit side by side)
+            },
+        },
+    })
+    hl.plugin.edgeworkspaces.scroll_gesture(3)
+else
+    hl.gesture({ fingers = 3, direction = "horizontal", action = "scroll_move" })
 end
