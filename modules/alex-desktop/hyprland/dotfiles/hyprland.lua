@@ -315,6 +315,7 @@ hl.config({
         animate_manual_resizes   = true,
         animate_mouse_windowdragging = false, -- dragging should feel 1:1
         focus_on_activate        = true,
+        enable_anr_dialog        = false, -- no "application not responding" popups (niri has none)
         key_press_enables_dpms   = true,  -- any key wakes monitors after Mod+Shift+P
         mouse_move_enables_dpms  = true,
     },
@@ -745,11 +746,10 @@ local function scratchpadToggle(name, class)
             end
             if prev then
                 hl.dispatch(hl.dsp.focus({ window = "address:" .. prev.address }))
-                -- hide right away (not after pyprland's unfocus delay)
-                hl.exec_cmd("pypr-client hide " .. name)
-                return
             end
         end
+        -- pyprland does the rest, pinning included (it pins on show and
+        -- unpins on hide itself)
         hl.exec_cmd("pypr-client toggle " .. name)
     end
 end

@@ -77,8 +77,10 @@ in {
       size = "75% 60%"
       max_size = "1920px 100%"
       margin = 50
-      unfocus = "hide"
-      smart_focus = true # on hide, focus goes back to the window you were using (otherwise the scrolling layout jumps to its first column)
+      # stays on screen when you swipe or switch workspaces; only Mod+` hides it
+      # (no hide-on-unfocus: a workspace switch moves focus, which would close it).
+      # (pyprland pins it on show and unpins it on hide)
+      pinned = true
 
       # Mod+Shift+M : music player, slides in from the right
       # (GNOME Music is single-instance, so it's matched by class, not PID)
