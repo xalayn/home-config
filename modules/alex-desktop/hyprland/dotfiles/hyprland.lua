@@ -729,6 +729,23 @@ hl.bind(mainMod .. " + SHIFT + P", hl.dsp.dpms({ action = "off" })) -- power off
 -- Not in niri. pypr-client talks to the pypr daemon started in AUTOSTART.
 hl.bind(mainMod .. " + grave",     exec("pypr-client toggle term"))  -- drop-down terminal
 hl.bind(mainMod .. " + SHIFT + M", exec("pypr-client toggle music")) -- music player
+-- Discord: Hyprland's own scratchpad (special workspace "discord"), so what's
+-- behind it is blurred and dimmed (decoration.blur.special / dim_special).
+-- Mod+Shift+D shows it on the monitor you're on (bringing it over from the
+-- other one) and hides it again; it stays up while you work elsewhere.
+-- Discord fills it like a 100%-wide window (dwindle with one window).
+hl.workspace_rule({ workspace = "special:discord", layout = "dwindle" })
+hl.window_rule({ name = "discord-scratchpad", match = { class = "^discord$" }, workspace = "special:discord silent" })
+hl.bind(mainMod .. " + SHIFT + D", function ()
+    local running = false
+    for _, w in ipairs(hl.get_windows()) do
+        if w.class == "discord" then running = true end
+    end
+    if not running then
+        hl.exec_cmd("discord") -- the rule above puts its window in the scratchpad
+    end
+    hl.dispatch(hl.dsp.workspace.toggle_special("discord"))
+end)
 
 ---- Not in niri's binds, kept so the laptop keys keep working ----
 hl.bind("XF86MonBrightnessUp",  exec("brightnessctl -e4 -n2 set 5%+"), { locked = true, repeating = true })
