@@ -78,6 +78,7 @@ in {
       max_size = "1920px 100%"
       margin = 50
       unfocus = "hide"
+      smart_focus = true # on hide, focus goes back to the window you were using (otherwise the scrolling layout jumps to its first column)
 
       # Mod+Shift+M : music player, slides in from the right
       # (GNOME Music is single-instance, so it's matched by class, not PID)
@@ -89,6 +90,7 @@ in {
       size = "40% 85%"
       margin = 50
       unfocus = "hide"
+      smart_focus = true # on hide, focus goes back to the window you were using (otherwise the scrolling layout jumps to its first column)
     '';
 
     # hyprland.lua loads this plugin from the path in this file

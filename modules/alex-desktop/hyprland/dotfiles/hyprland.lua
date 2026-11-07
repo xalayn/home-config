@@ -727,8 +727,34 @@ hl.bind(mainMod .. " + SHIFT + P", hl.dsp.dpms({ action = "off" })) -- power off
 
 ---- SCRATCHPADS (pyprland; scratchpads are set up in ~/.config/pypr/config.toml) ----
 -- Not in niri. pypr-client talks to the pypr daemon started in AUTOSTART.
-hl.bind(mainMod .. " + grave",     exec("pypr-client toggle term"))  -- drop-down terminal
-hl.bind(mainMod .. " + SHIFT + M", exec("pypr-client toggle music")) -- music player
+-- Hiding a focused scratchpad left Hyprland to pick a new window, and the
+-- scrolling layout jumped to its first column before pyprland restored focus
+-- (a visible flicker). So when the scratchpad is focused, hand focus back to
+-- the window used before it, then hide it.
+local function scratchpadToggle(name, class)
+    return function ()
+        local ok, active = pcall(hl.get_active_window)
+        if ok and active and active.class == class then
+            local prev
+            for _, w in ipairs(hl.get_windows()) do
+                local id = w.focus_history_id or 0
+                if id > 0 and w.class ~= class and not (w.workspace and w.workspace.special)
+                    and (not prev or id < prev.focus_history_id) then
+                    prev = w
+                end
+            end
+            if prev then
+                hl.dispatch(hl.dsp.focus({ window = "address:" .. prev.address }))
+                -- hide right away (not after pyprland's unfocus delay)
+                hl.exec_cmd("pypr-client hide " .. name)
+                return
+            end
+        end
+        hl.exec_cmd("pypr-client toggle " .. name)
+    end
+end
+hl.bind(mainMod .. " + grave",     scratchpadToggle("term", "dropterm"))         -- drop-down terminal
+hl.bind(mainMod .. " + SHIFT + M", scratchpadToggle("music", "org.gnome.Music")) -- music player
 -- Discord: Hyprland's own scratchpad (special workspace "discord"), so what's
 -- behind it is blurred and dimmed (decoration.blur.special / dim_special).
 -- Mod+Shift+D shows it on the monitor you're on (bringing it over from the
