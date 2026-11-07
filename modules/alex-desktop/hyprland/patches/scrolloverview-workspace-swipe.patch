@@ -113,10 +113,62 @@ index 6abeb23..7ef104c 100644
          return g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale, disableInhibit);
  
 diff --git a/scrollOverview.cpp b/scrollOverview.cpp
-index 4d52e99..0856feb 100644
+index 4d52e99..bd1bb6a 100644
 --- a/scrollOverview.cpp
 +++ b/scrollOverview.cpp
-@@ -5669,3 +5669,9 @@ void CScrollOverview::onSwipeEnd() {
+@@ -13,6 +13,7 @@
+ #include <state/WorkspaceState.hpp>
+ #include <hyprland/src/workspace/RegularWorkspace.hpp>
+ #include <hyprland/src/workspace/query/Query.hpp>
++#include <hyprland/src/state/workspace/Resolver.hpp>
+ #define private public
+ #define protected public
+ #include <hyprland/src/render/Renderer.hpp>
+@@ -3614,14 +3615,23 @@ void CScrollOverview::trackpadSwipeWorkspace(const double delta) {
+ 
+     // fingers lifted — snap to the nearest workspace
+     if (delta == 0.0) {
++        const double OVERSCROLL = trackpadRawAccum - trackpadScrollAccum;
++        trackpadRawAccum        = 0.0;
++        const bool   WASFOLLOWING = trackpadWorkspaceFollowing;
+         finishWorkspaceScrollFollow();
++        if (WASFOLLOWING)
++            createWorkspacePastEnd(OVERSCROLL);
+         return;
+     }
+ 
+     const float SCALE = std::max<float>(scale->value(), 0.01F);
+ 
++    if (!trackpadWorkspaceFollowing)
++        trackpadRawAccum = trackpadScrollAccum;
+     trackpadWorkspaceFollowing  = true;
+     trackpadScrollAccum         += delta * ScrollOverview::Config::getTouchpadScrollFactor(pMonitor.lock());
++    trackpadRawAccum            += delta * ScrollOverview::Config::getTouchpadScrollFactor(pMonitor.lock());
++    trackpadLastDir             = delta > 0 ? 1 : -1;
+ 
+     viewOffset->setValueAndWarp(axisOffsetVector(sc<float>(trackpadWorkspaceScrollOffset(MONITOR, SCALE)), layout));
+     damage();
+@@ -3669,6 +3679,10 @@ void CScrollOverview::finishWorkspaceScrollFollow() {
+     const float  RENDEREDPITCH  = getWorkspaceRenderedPitch(MONITOR, SCALE, layout);
+     const size_t ACTIVEIDX      = activeWorkspaceIndex();
+     const double VIEWPORTCENTER = axisSize(MONITOR->m_size * MONITOR->m_scale, layout) / 2.0;
++    // Like niri: once you have moved ~20% of the way in a direction, letting go
++    // continues to that workspace instead of needing to pass the halfway point.
++    const double SNAPPOINT      = VIEWPORTCENTER + trackpadLastDir * 0.3 * RENDEREDPITCH;
++    trackpadLastDir             = 0;
+ 
+     size_t targetIdx    = viewportCurrentWorkspace;
+     double bestDistance = std::numeric_limits<double>::max();
+@@ -3678,7 +3692,7 @@ void CScrollOverview::finishWorkspaceScrollFollow() {
+             continue;
+ 
+         const auto   WORKSPACEBOX = getOverviewWorkspaceBox(MONITOR, SCALE, viewOffset->value(), workspaceOverviewOffset(i, ACTIVEIDX, RENDEREDPITCH), layout);
+-        const double DISTANCE     = std::abs(axisValue(WORKSPACEBOX.middle(), layout) - VIEWPORTCENTER);
++        const double DISTANCE     = std::abs(axisValue(WORKSPACEBOX.middle(), layout) - SNAPPOINT);
+         if (DISTANCE < bestDistance) {
+             bestDistance = DISTANCE;
+             targetIdx    = i;
+@@ -5669,3 +5683,40 @@ void CScrollOverview::onSwipeEnd() {
      (*scale)    = ScrollOverview::Config::getScale(pMonitor.lock());
      m_isSwiping = false;
  }
@@ -126,8 +178,39 @@ index 4d52e99..0856feb 100644
 +        return;
 +    trackpadSwipeWorkspace(delta);
 +}
++
++// Pushing past the first or last workspace (like niri) opens a new empty
++// workspace there, unless the end workspace is already empty.
++void CScrollOverview::createWorkspacePastEnd(double overscroll) {
++    // roughly a fifth of a finger swipe across the trackpad
++    constexpr double THRESHOLD = 60.0;
++
++    const auto MONITOR = pMonitor.lock();
++    if (!MONITOR || images.empty() || std::abs(overscroll) < THRESHOLD)
++        return;
++
++    const bool   PAST_TOP = overscroll < 0;
++    const size_t EDGE     = PAST_TOP ? 0 : images.size() - 1;
++    if (viewportCurrentWorkspace != EDGE || !images[EDGE] || !images[EDGE]->pWorkspace)
++        return;
++
++    const auto EDGEWS = images[EDGE]->pWorkspace;
++    if (EDGEWS->getWindowCount() == 0 || MONITOR->m_activeWorkspace != EDGEWS)
++        return;
++
++    const auto TARGET = State::Workspace::resolver()->getWorkspaceTargetFromString(PAST_TOP ? "r-1" : "r+1", MONITOR);
++    if (!TARGET.valid() || State::Workspace::state()->find(TARGET))
++        return;
++
++    const auto NEWWS = State::Workspace::state()->create(TARGET, MONITOR);
++    if (!NEWWS)
++        return;
++
++    changeOverviewWorkspace(MONITOR, NEWWS);
++    damage();
++}
 diff --git a/scrollOverview.hpp b/scrollOverview.hpp
-index cb1f81c..3c4d8d9 100644
+index cb1f81c..5ff1170 100644
 --- a/scrollOverview.hpp
 +++ b/scrollOverview.hpp
 @@ -45,6 +45,7 @@ class CScrollOverview : public IOverview {
@@ -138,3 +221,20 @@ index cb1f81c..3c4d8d9 100644
  
      // close without a selection
      void         close() override;
+@@ -96,6 +97,7 @@ class CScrollOverview : public IOverview {
+     void   trackpadSwipeLayout(const PHLWORKSPACE target, const double delta);
+     void   trackpadSwipeWorkspace(const double delta);
+     void   finishWorkspaceScrollFollow();
++    void   createWorkspacePastEnd(double overscroll);
+     double trackpadWorkspaceScrollOffset(PHLMONITOR monitor, float renderScale);
+     bool   scrollStepAllowed(uint32_t timeMs);
+     bool   selectOverviewWindow(PHLWINDOW window, size_t workspaceIdx, bool syncFocus = false);
+@@ -326,6 +328,8 @@ class CScrollOverview : public IOverview {
+     uint32_t                         lastScrollStepTimeMs = 0;      // event time of the last discrete scroll step, for scroll_event_delay throttling
+ 
+     double                           trackpadScrollAccum          = 0.0;
++    double                           trackpadRawAccum             = 0.0; // unclamped, to detect pushing past either end
++    int                              trackpadLastDir              = 0;   // direction of the latest scroll step, for flick-style snapping
+     bool                             trackpadWorkspaceFollowing   = false;
+     bool                             trackpadTapeFollowing        = false;
+     bool                             trackpadGestureSettlePending = false;

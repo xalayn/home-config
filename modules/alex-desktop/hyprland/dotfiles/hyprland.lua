@@ -57,6 +57,7 @@ local menu        = "fuzzel"
 -- (mako is started by its home-manager systemd service, so it's not here)
 hl.on("hyprland.start", function ()
     hl.exec_cmd("waybar")
+    hl.exec_cmd("pypr") -- scratchpads, see SCRATCHPADS below
     hl.exec_cmd("waypaper --restore")
 end)
 
@@ -66,6 +67,19 @@ end)
 -------------------------------
 
 -- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Environment-variables/
+-- Render on the RTX 4050, keeping the Intel GPU (which drives the laptop panel)
+-- as the second device. The names come from udev rules in system-config
+-- (hosts/alex-laptop); without them Hyprland picks the GPU itself (Intel).
+-- The Intel iGPU is too weak for the overview's zoom at 165 Hz.
+local function exists(path)
+    local f = io.open(path, "r")
+    if f then f:close() return true end
+    return false
+end
+if exists("/dev/dri/nvidia-dgpu") and exists("/dev/dri/intel-igpu") then
+    hl.env("AQ_DRM_DEVICES", "/dev/dri/nvidia-dgpu:/dev/dri/intel-igpu")
+end
+
 hl.env("XCURSOR_THEME", "Adwaita")
 hl.env("XCURSOR_SIZE", "32")
 hl.env("HYPRCURSOR_SIZE", "32")
@@ -565,7 +579,7 @@ end
 hl.config({
     gestures = {
         workspace_swipe_use_r      = true, -- neighbours are id ± 1 (see above)
-        workspace_swipe_create_new = true, -- swiping past either end makes an empty one
+        workspace_swipe_create_new = true, -- without the edgeworkspaces plugin: swiping past either end makes an empty one
         workspace_swipe_forever    = true, -- one long swipe can pass several workspaces, like niri
     },
 })
@@ -637,6 +651,11 @@ local quit = exec("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hy
 hl.bind(mainMod .. " + SHIFT + E", quit)
 hl.bind("CTRL + ALT + Delete",     quit)
 hl.bind(mainMod .. " + SHIFT + P", hl.dsp.dpms({ action = "off" })) -- power off monitors; any key wakes them
+
+---- SCRATCHPADS (pyprland; scratchpads are set up in ~/.config/pypr/config.toml) ----
+-- Not in niri. pypr-client talks to the pypr daemon started in AUTOSTART.
+hl.bind(mainMod .. " + grave",     exec("pypr-client toggle term"))  -- drop-down terminal
+hl.bind(mainMod .. " + SHIFT + M", exec("pypr-client toggle music")) -- music player
 
 ---- Not in niri's binds, kept so the laptop keys keep working ----
 hl.bind("XF86MonBrightnessUp",  exec("brightnessctl -e4 -n2 set 5%+"), { locked = true, repeating = true })
@@ -744,6 +763,11 @@ if scrolloverviewLoaded() then
                     enabled = true,
                     range   = 40,
                 },
+                input = {
+                    -- One workspace per ~300 units of finger travel, like the swipe outside
+                    -- the overview (the default 1.0 needed over twice that).
+                    touchpad_scroll_factor = 2.2,
+                },
             },
         },
     })
@@ -764,4 +788,101 @@ if scrolloverviewLoaded() then
     hl.plugin.scrolloverview.gesture({ fingers = 3, direction = "vertical", action = "workspace" })
 else
     hl.gesture({ fingers = 3, direction = "vertical", action = "workspace" })
+end
+
+
+-------------------------
+---- EDGE WORKSPACES ----
+-------------------------
+
+-- Our own plugin (edgeworkspaces/ next to this config's Nix module) keeps an
+-- empty workspace ready above the first and below the last workspace on each
+-- monitor, like niri's empty-workspace-above-first. Because they already exist,
+-- swipes, Mod+U/I and the overview move onto them straight away instead of
+-- creating one mid-gesture.
+local okEdges, edgesPath = pcall(dofile, configDir .. "/edgeworkspaces-plugin.lua")
+if okEdges and type(edgesPath) == "string" then
+    hl.plugin.load(edgesPath)
+end
+
+for _, plugin in ipairs(hl.get_loaded_plugins()) do
+    if plugin.name == "edgeworkspaces" then
+        -- swipes stop at those empty ends instead of making more, as in niri
+        hl.config({ gestures = { workspace_swipe_create_new = false } })
+    end
+end
+
+
+----------------------
+---- SCREEN SHARE ----
+----------------------
+
+-- Notifications never show up in a screen share (blacked out in the stream).
+hl.layer_rule({
+    name            = "no-share-notifications",
+    match           = { namespace = "^notifications$" },
+    no_screen_share = true,
+})
+
+-- Whatever is being shared gets a red border: the windows of a shared
+-- workspace or monitor, or the shared window itself. Hyprland's picker
+-- (xdg-desktop-portal-hyprland) can share a monitor, a window, a region or a
+-- whole workspace; a shared workspace keeps streaming while you look elsewhere.
+-- Shared windows are tagged "shared"; this rule colours tagged windows.
+hl.window_rule({
+    name         = "screenshare-border",
+    match        = { tag = "shared" },
+    border_color = "rgb(ff3b3b) rgb(ff3b3b)",
+})
+
+-- screenshare.state's type: 1 monitor, 2 window, 3 region, 4 workspace
+local SHARE_MONITOR, SHARE_WINDOW, SHARE_WORKSPACE = 1, 2, 4
+local shares = {}   -- active shares: { type, name, workspace? }
+
+local function isShared(w)
+    for _, s in ipairs(shares) do
+        if s.type == SHARE_WORKSPACE and s.workspace and w.workspace == s.workspace then return true end
+        if s.type == SHARE_MONITOR and w.monitor and w.monitor.name == s.name then return true end
+        if s.type == SHARE_WINDOW and w.title == s.name then return true end
+    end
+    return false
+end
+
+local tagged = {}   -- address -> true for windows we tagged
+local function updateShareBorders()
+    for _, w in ipairs(hl.get_windows()) do
+        local want = #shares > 0 and isShared(w)
+        if want ~= (tagged[w.address] == true) then
+            hl.dispatch(hl.dsp.window.tag({ tag = (want and "+" or "-") .. "shared", window = "address:" .. w.address }))
+            tagged[w.address] = want or nil
+        end
+    end
+end
+
+hl.on("screenshare.state", function(active, shareType, name)
+    if active then
+        local entry = { type = shareType, name = name }
+        if shareType == SHARE_WORKSPACE then
+            -- follow the workspace itself: its number can change later
+            for _, ws in ipairs(hl.get_workspaces()) do
+                if ws.name == name then entry.workspace = ws end
+            end
+        end
+        table.insert(shares, entry)
+    else
+        for i, s in ipairs(shares) do
+            if s.type == shareType and s.name == name then
+                table.remove(shares, i)
+                break
+            end
+        end
+    end
+    updateShareBorders()
+end)
+
+-- keep it right as windows open, move or change title while sharing
+for _, event in ipairs({ "window.open", "window.move_to_workspace", "window.title", "workspace.move_to_monitor" }) do
+    hl.on(event, function()
+        if #shares > 0 then updateShareBorders() end
+    end)
 end
