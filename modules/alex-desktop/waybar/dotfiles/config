@@ -12,7 +12,7 @@
     "spacing": 0, // Gaps between modules (4px)
     // Choose the order of the modules
     "modules-left": ["network", "wlr/taskbar"],
-    "modules-center": ["clock"],
+    "modules-center": ["custom/clock"],
     "modules-right": ["cpu", "memory", "battery", "tray", "pulseaudio"],
     // "modules-right": ["cpu", "memory", "battery", "network", "tray"],
     // Modules configuration
@@ -102,9 +102,13 @@
         // "icon-size": 21,
         "spacing": 10
     },
-    "clock": {
-        "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
-        "format": "{:%e %B %H:%M}"
+    // Waybar's own clock uses timezone rules built into its C++ library, which
+    // predate Alberta's switch to permanent UTC-6 (Nov 2026) and show MST.
+    // `date` uses the system's up-to-date timezone data.
+    "custom/clock": {
+        "exec": "while :; do jq -cn --arg t \"$(date '+%e %B %H:%M')\" --arg c \"$(cal)\" '{text: $t, tooltip: (\"<tt><small>\" + $c + \"</small></tt>\")}'; sleep $((60 - $(date +%-S))); done",
+        "return-type": "json",
+        "format": "{}"
     },
     "cpu": {
         "format": "{usage}% ",

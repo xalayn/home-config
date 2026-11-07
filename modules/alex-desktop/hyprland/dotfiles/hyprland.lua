@@ -1,6 +1,6 @@
 -- Hyprland config (Lua, Hyprland 0.57)
--- Programs and keybinds match the niri setup; colors follow niri's
--- mauve -> teal focus ring.
+-- Programs and keybinds match the niri setup. The look is Frutiger Aero (sky
+-- blue glass), Hyprland-only: niri keeps its own look.
 -- Wiki: https://wiki.hypr.land/Configuring/Start/
 -- Validate with: Hyprland --verify-config
 
@@ -11,15 +11,16 @@ local configDir = (os.getenv("XDG_CONFIG_HOME") or (os.getenv("HOME") .. "/.conf
 ---- THEME  ----
 ----------------
 
+-- Frutiger Aero: sky blue, aqua and leaf green over frosted white glass.
 -- One place for every color, so the borders, glow and groups stay in step.
 local theme = {
-    mauve    = "dc8af1",
-    teal     = "0fa0a0",
-    peach    = "ffc87f",
+    sky      = "4fc3f7",
+    aqua     = "5ee6d8",
+    leaf     = "8bd448",
+    glass    = "ffffff",
+    deep     = "0b2a45",   -- deep sea blue, behind everything
+    shade    = "0a3a66",   -- blue-tinted shadows
     red      = "f38ba8",
-    base     = "11111b",
-    surface  = "313244",
-    text     = "cdd6f4",
 }
 
 local function rgba(hex, alpha)
@@ -62,7 +63,8 @@ hl.monitor({
 
 local terminal    = "wezterm"
 local fileManager = "thunar"
-local menu        = "fuzzel"
+-- the Aero-styled launcher config is Hyprland-only (fuzzel/aero.ini)
+local menu        = "fuzzel --config " .. (os.getenv("XDG_CONFIG_HOME") or (os.getenv("HOME") .. "/.config")) .. "/fuzzel/aero.ini"
 
 
 -------------------
@@ -81,7 +83,16 @@ hl.on("hyprland.start", function ()
         .. " systemctl --user unset-environment NIRI_SOCKET;"
         .. " systemctl --user start hyprland-session.target;"
         .. " systemctl --user restart xdg-desktop-portal.service'")
-    hl.exec_cmd("waybar")
+    -- the bar with the Aero style and the current workspace (Hyprland-only;
+    -- niri keeps config + style.css)
+    local waybarDir = (os.getenv("XDG_CONFIG_HOME") or (os.getenv("HOME") .. "/.config")) .. "/waybar"
+    hl.exec_cmd("waybar -c " .. waybarDir .. "/aero-config.jsonc -s " .. waybarDir .. "/aero.css")
+    -- Aero notifications while Hyprland runs (mako is shared with niri): a
+    -- small watcher turns the mode back off once this Hyprland has exited
+    hl.exec_cmd("systemd-run --user --collect sh -c '"
+        .. "makoctl mode -a aero; "
+        .. "while [ -S \"$XDG_RUNTIME_DIR/hypr/" .. (os.getenv("HYPRLAND_INSTANCE_SIGNATURE") or "") .. "/.socket.sock\" ]; do sleep 5; done; "
+        .. "makoctl mode -r aero'")
     hl.exec_cmd("pypr") -- scratchpads, see SCRATCHPADS below
     hl.exec_cmd("waypaper --restore")
 end)
@@ -104,8 +115,10 @@ if exists("/dev/dri/nvidia-dgpu") and exists("/dev/dri/intel-igpu") then
     hl.env("AQ_DRM_DEVICES", "/dev/dri/nvidia-dgpu:/dev/dri/intel-igpu")
 end
 
-hl.env("XCURSOR_THEME", "Adwaita")
+-- a clean white cursor to go with the Aero look (Hyprland-only)
+hl.env("XCURSOR_THEME", "Bibata-Modern-Ice")
 hl.env("XCURSOR_SIZE", "32")
+hl.env("HYPRCURSOR_THEME", "Bibata-Modern-Ice")
 hl.env("HYPRCURSOR_SIZE", "32")
 
 
@@ -119,11 +132,11 @@ hl.config({
         gaps_in  = 6,
         gaps_out = 14,
 
-        border_size = 2,
+        border_size = 0,   -- no borders; the focused window keeps its aqua glow
 
         col = {
-            active_border   = { colors = { rgba(theme.mauve, "ee"), rgba(theme.teal, "ee") }, angle = 45 },
-            inactive_border = rgba(theme.surface, "aa"),
+            active_border   = { colors = { rgba(theme.sky, "ee"), rgba(theme.aqua, "ee"), rgba(theme.leaf, "ee") }, angle = 45 },
+            inactive_border = rgba(theme.glass, "44"),   -- a thin frosted edge
         },
 
         -- Resize windows by clicking and dragging on borders and gaps
@@ -146,45 +159,47 @@ hl.config({
     },
 
     decoration = {
-        rounding       = 14,
+        rounding       = 16,      -- soft, bubbly corners
         rounding_power = 3,       -- a little squircle, softer than a circle arc
 
+        -- windows are fully opaque
         active_opacity     = 1.0,
-        inactive_opacity   = 0.96,
+        inactive_opacity   = 1.0,
         fullscreen_opacity = 1.0,
 
-        -- Gently dim unfocused windows so the active one stands out
-        dim_inactive = true,
+        -- no darkening: Aero is bright
+        dim_inactive = false,
         dim_strength = 0.06,
         dim_special  = 0.35,      -- dims what's behind the scratchpad
 
         shadow = {
             enabled        = true,
-            range          = 22,
+            range          = 30,
             render_power   = 3,
-            offset         = { 0, 6 },
-            color          = "rgba(0000005c)",
-            color_inactive = "rgba(00000033)",
+            offset         = { 0, 8 },
+            color          = rgba(theme.shade, "66"),   -- soft blue shadows
+            color_inactive = rgba(theme.shade, "33"),
         },
 
-        -- A faint halo in the accent color around the focused window
+        -- An aqua halo around the focused window
         glow = {
             enabled        = true,
-            range          = 10,
+            range          = 14,
             render_power   = 3,
-            color          = rgba(theme.mauve, "33"),
+            color          = rgba(theme.aqua, "55"),
             color_inactive = "rgba(00000000)",
         },
 
         blur = {
             enabled           = true,
-            size              = 7,
-            passes            = 2,     -- niri: passes 2
-            noise             = 0.015,
-            contrast          = 0.95,
-            brightness        = 0.85,
-            vibrancy          = 0.2,
-            vibrancy_darkness = 0.4,
+            -- frosted glass: bright and saturated rather than dark
+            size              = 8,
+            passes            = 3,
+            noise             = 0.02,
+            contrast          = 1.0,
+            brightness        = 1.05,
+            vibrancy          = 0.35,
+            vibrancy_darkness = 0.2,
             popups            = true,
             special           = true,
             new_optimizations = true,
@@ -197,18 +212,18 @@ hl.config({
 
     group = {
         col = {
-            border_active   = { colors = { rgba(theme.peach, "ee"), rgba(theme.mauve, "ee") }, angle = 45 },
-            border_inactive = rgba(theme.surface, "aa"),
+            border_active   = { colors = { rgba(theme.aqua, "ee"), rgba(theme.leaf, "ee") }, angle = 45 },
+            border_inactive = rgba(theme.glass, "44"),
         },
         groupbar = {
             font_size    = 11,
             height       = 18,
             rounding     = 6,
             gradients    = true,
-            text_color   = rgba(theme.base),
+            text_color   = rgba(theme.deep),
             col = {
-                active   = rgba(theme.mauve, "dd"),
-                inactive = rgba(theme.surface, "aa"),
+                active   = rgba(theme.sky, "dd"),
+                inactive = rgba(theme.glass, "66"),
             },
         },
     },
@@ -231,8 +246,11 @@ hl.curve("niriWorkspace",  { type = "spring", mass = 1, stiffness = 1000, dampen
 hl.curve("niriMove",       { type = "spring", mass = 1, stiffness = 800,  dampening = 57 })
 
 hl.animation({ leaf = "global",        enabled = true,  speed = 2,    bezier = "easeOutQuint" })
-hl.animation({ leaf = "border",        enabled = true,  speed = 1.5,  bezier = "easeOutQuint" })
-hl.animation({ leaf = "borderangle",   enabled = true,  speed = 60,   bezier = "linear",       style = "loop" })
+-- focus changes are instant: no fading of opacity, glow/border colour or
+-- shadows when switching windows
+hl.animation({ leaf = "border",        enabled = false, speed = 1.5,  bezier = "easeOutQuint" })
+-- borders stay still (no rotating gradient)
+hl.animation({ leaf = "borderangle",   enabled = false, speed = 60,   bezier = "linear" })
 -- niri window-movement / horizontal-view-movement / window-resize
 hl.animation({ leaf = "windows",       enabled = true,  speed = 2,    spring = "niriMove" })
 hl.animation({ leaf = "windowsMove",   enabled = true,  speed = 2,    spring = "niriMove" })
@@ -242,7 +260,9 @@ hl.animation({ leaf = "windowsOut",    enabled = true,  speed = 1.5,  bezier = "
 hl.animation({ leaf = "fadeIn",        enabled = true,  speed = 1.5,  bezier = "linear" })
 hl.animation({ leaf = "fadeOut",       enabled = true,  speed = 1.5,  bezier = "easeOutQuad" })
 hl.animation({ leaf = "fade",          enabled = true,  speed = 1.5,  bezier = "easeOutQuint" })
-hl.animation({ leaf = "fadeDim",       enabled = true,  speed = 1.5,  bezier = "easeOutQuint" })
+hl.animation({ leaf = "fadeDim",       enabled = false, speed = 1.5,  bezier = "easeOutQuint" })
+hl.animation({ leaf = "fadeSwitch",    enabled = false, speed = 1.5,  bezier = "easeOutQuint" })
+hl.animation({ leaf = "fadeShadow",    enabled = false, speed = 1.5,  bezier = "easeOutQuint" })
 hl.animation({ leaf = "layers",        enabled = true,  speed = 1.5,  bezier = "easeOutQuint" })
 hl.animation({ leaf = "layersIn",      enabled = true,  speed = 1.5,  bezier = "easeOutExpo",  style = "slide" })
 hl.animation({ leaf = "layersOut",     enabled = true,  speed = 1.5,  bezier = "easeOutQuad",  style = "fade" })
@@ -291,7 +311,7 @@ hl.config({
         force_default_wallpaper  = 0,    -- waypaper handles the wallpaper
         disable_hyprland_logo    = true,
         disable_splash_rendering = true,
-        background_color         = rgba(theme.base),
+        background_color         = rgba(theme.deep),
         animate_manual_resizes   = true,
         animate_mouse_windowdragging = false, -- dragging should feel 1:1
         focus_on_activate        = true,
@@ -645,7 +665,30 @@ hl.bind(mainMod .. " + equal",        msg("colresize +0.1"))
 hl.bind(mainMod .. " + SHIFT + minus", hl.dsp.window.resize({ x = 0, y = -80, relative = true }))
 hl.bind(mainMod .. " + SHIFT + equal", hl.dsp.window.resize({ x = 0, y =  80, relative = true }))
 
-hl.bind(mainMod .. " + F",            hl.dsp.window.fullscreen({ mode = "maximized" })) -- maximize-column
+-- maximize-column, as in niri: the column becomes 100% wide (an ordinary column,
+-- so swiping still shows its neighbours), and again goes back to its old width.
+-- (Hyprland's own "maximized" mode hides every other window on the workspace.)
+local columnWidthBeforeMax = {}   -- window address -> width fraction
+hl.bind(mainMod .. " + F", function ()
+    local ok, w = pcall(hl.get_active_window)
+    if not ok or not w then return end
+    if (w.fullscreen or 0) ~= 0 then
+        -- left over from Hyprland's maximized/fullscreen state: leave it first
+        hl.dispatch(hl.dsp.window.fullscreen({ mode = (w.fullscreen == 1) and "maximized" or "fullscreen" }))
+        return
+    end
+    local mon     = hl.get_active_monitor()
+    local gapsOut = 14
+    local usable  = mon.width / mon.scale - 2 * gapsOut
+    local frac    = (w.size.x + 12) / usable   -- + gaps_in on both sides
+    if frac > 0.95 then
+        hl.dispatch(hl.dsp.layout(string.format("colresize %.3f", columnWidthBeforeMax[w.address] or 0.5)))
+        columnWidthBeforeMax[w.address] = nil
+    else
+        columnWidthBeforeMax[w.address] = frac
+        hl.dispatch(hl.dsp.layout("colresize 1.0"))
+    end
+end) -- maximize-column
 hl.bind(mainMod .. " + SHIFT + F",    hl.dsp.window.fullscreen())                       -- fullscreen-window
 hl.bind(mainMod .. " + CTRL + F",     msg("fit expand"))   -- expand-column-to-available-width
 hl.bind(mainMod .. " + C",            msg("center"))       -- center-column
@@ -745,14 +788,7 @@ hl.window_rule({
     pin   = true,
 })
 
--- Frosted glass behind the launcher, notifications and bar
--- (only visible where they draw with a translucent background)
-hl.layer_rule({
-    name         = "blur-shell",
-    match        = { namespace = "^(launcher|notifications|waybar)$" },
-    blur         = true,
-    ignore_alpha = 0.2,
-})
+-- (the bar, launcher and notifications get their glass in HYPRGLASS at the end)
 
 
 ------------------------
@@ -865,6 +901,7 @@ hl.layer_rule({
 hl.window_rule({
     name         = "screenshare-border",
     match        = { tag = "shared" },
+    border_size  = 3,   -- windows have no border otherwise
     border_color = "rgb(ff3b3b) rgb(ff3b3b)",
 })
 
@@ -938,4 +975,55 @@ if nirilikeLoaded then
     hl.plugin.edgeworkspaces.scroll_gesture(3)
 else
     hl.gesture({ fingers = 3, direction = "horizontal", action = "scroll_move" })
+end
+
+
+-------------------
+---- HYPRGLASS ----
+-------------------
+
+-- Liquid Glass look (https://github.com/hyprnux/hyprglass): frosted blur with
+-- refraction at the edges, a little colour fringing and glossy highlights, on
+-- windows and on the bar, launcher and notifications. It replaces Hyprland's
+-- own blur wherever it applies. Built for this exact Hyprland (hyprglass.nix).
+local okGlass, glassPath = pcall(dofile, configDir .. "/hyprglass-plugin.lua")
+if okGlass and type(glassPath) == "string" then
+    hl.plugin.load(glassPath)
+end
+
+if hl.plugin.hyprglass then
+    local hg = hl.plugin.hyprglass
+
+    -- Clear, colourful glass with a hint of sky blue. (The "light" theme washes
+    -- everything out to white: brightness up, saturation down, and it lifts
+    -- dark areas behind the glass towards white.)
+    hg.config({
+        default_theme        = "dark",
+        tint_color           = 0x4fc3f714,   -- faint sky blue (RRGGBBAA)
+        brightness           = 1.0,
+        contrast             = 1.0,
+        saturation           = 1.1,
+        vibrancy             = 0.3,
+        adaptive_dim         = 0.1,          -- keep very bright backgrounds from glaring
+        adaptive_boost       = 0.0,          -- don't lift dark areas to white
+        refraction_strength  = 0.75,         -- the liquid bend at the edges
+        chromatic_aberration = 0.5,
+        specular_strength    = 0.8,
+        bevel_strength       = 0.5,          -- a thin lit line along the glass edge
+        layers = { enabled = true },
+    })
+
+    -- glass on these layers only (others keep Hyprland's blur, if any)
+    hg.layer("waybar", { preset = "subtle", mask_threshold = 0.05 })
+    hg.layer("launcher")
+    hg.layer("notifications", { mask_mode = "contour", mask_threshold = 0.15 })
+else
+    -- without the plugin: Hyprland's frosted blur behind the bar, launcher and
+    -- notifications (only visible where they draw a translucent background)
+    hl.layer_rule({
+        name         = "blur-shell",
+        match        = { namespace = "^(launcher|notifications|waybar)$" },
+        blur         = true,
+        ignore_alpha = 0.2,
+    })
 end

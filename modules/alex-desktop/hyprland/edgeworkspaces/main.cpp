@@ -33,6 +33,10 @@
 #include <hyprland/src/plugins/HookSystem.hpp>
 #include <hyprland/src/input/Keys.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
+#include <hyprland/src/desktop/state/WindowState.hpp>
+#include <hyprland/src/desktop/view/window/Window.hpp>
+#include <hyprland/src/desktop/view/window/WindowFullscreenPolicy.hpp>
+#include <hyprland/src/layout/target/WindowTarget.hpp>
 #include <hyprland/src/layout/algorithm/Algorithm.hpp>
 #include <hyprland/src/layout/space/Space.hpp>
 #include <hyprland/src/managers/input/trackpad/TrackpadGestures.hpp>
@@ -40,6 +44,7 @@
 #define private public
 #include <hyprland/src/layout/algorithm/tiled/scrolling/ScrollingAlgorithm.hpp>
 #include <hyprland/src/layout/algorithm/tiled/scrolling/ScrollTapeController.hpp>
+#include <hyprland/src/layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp>
 #undef private
 #include <cmath>
 #include <deque>
@@ -486,6 +491,8 @@ static int luaLastGesture(lua_State* L) {
 
 // debug: run a swipe of `units` touchpad units (negative = the other way)
 // through the gesture, as several updates over ~150 ms, then release
+static CNiriScrollGesture* g_heldGesture = nullptr;
+
 static int luaSimulateSwipe(lua_State* L) {
     const double       UNITS = luaL_checknumber(L, 1);
     CNiriScrollGesture g;
@@ -497,8 +504,27 @@ static int luaSimulateSwipe(lua_State* L) {
         IPointer::SSwipeUpdateEvent ev{.timeMs = t, .fingers = 3, .delta = Vector2D{UNITS / 10.0, 0.0}};
         g.update({.swipe = &ev, .direction = TRACKPAD_GESTURE_DIR_HORIZONTAL, .scale = 1.F});
     }
+    // a second argument `true` keeps the fingers "down": finish with simulate_release()
+    if (lua_toboolean(L, 2)) {
+        static CNiriScrollGesture held;
+        held = g;
+        g_heldGesture = &held;
+        lua_pushstring(L, "holding");
+        return 1;
+    }
     IPointer::SSwipeEndEvent end{.timeMs = t + 5, .cancelled = false};
     g.end({.swipe = &end, .direction = TRACKPAD_GESTURE_DIR_HORIZONTAL, .scale = 1.F});
+    return luaLastGesture(L);
+}
+
+static int luaSimulateRelease(lua_State* L) {
+    if (!g_heldGesture) {
+        lua_pushstring(L, "no held swipe");
+        return 1;
+    }
+    IPointer::SSwipeEndEvent end{.timeMs = 1000, .cancelled = false};
+    g_heldGesture->end({.swipe = &end, .direction = TRACKPAD_GESTURE_DIR_HORIZONTAL, .scale = 1.F});
+    g_heldGesture = nullptr;
     return luaLastGesture(L);
 }
 
@@ -528,6 +554,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addLuaFunction(handle, "edgeworkspaces", "scroll_gesture", luaScrollGesture);
     HyprlandAPI::addLuaFunction(handle, "edgeworkspaces", "last_swipe", luaLastGesture);
     HyprlandAPI::addLuaFunction(handle, "edgeworkspaces", "simulate_swipe", luaSimulateSwipe);
+    HyprlandAPI::addLuaFunction(handle, "edgeworkspaces", "simulate_release", luaSimulateRelease);
 
     using namespace Config::Values;
     HyprlandAPI::addConfigValueV2(handle, makeShared<CFloatValue>("plugin:edgeworkspaces:swipe_distance",

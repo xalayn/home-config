@@ -1,0 +1,16 @@
+// Hyprland's bar: the shared config plus the current workspace.
+// (Started by hyprland.lua with `waybar -c aero-config.jsonc -s aero.css`;
+// niri keeps using `config` as it is.)
+{
+    "include": ["~/.config/waybar/config"],
+
+    "modules-left": ["custom/workspace", "network", "wlr/taskbar"],
+
+    // position of the active workspace on this monitor, counted from the top
+    // like niri; updates on every workspace change
+    "custom/workspace": {
+        "exec": "hypr-workspace-index",
+        "return-type": "json",
+        "format": "󰍹  {}"
+    }
+}

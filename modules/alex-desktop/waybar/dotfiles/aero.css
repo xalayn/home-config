@@ -1,0 +1,126 @@
+/* Frutiger Aero bar, used by Hyprland only (`waybar -s aero.css`); niri keeps
+ * style.css. Nearly clear: HyprGlass draws the liquid glass behind it; this
+ * adds faint bubble modules and a thin highlight. (Without HyprGlass, Hyprland
+ * blurs behind the bar instead: layer rule "blur-shell".) */
+
+* {
+    font-family: "Open Sans", "FiraCode Nerd Font Propo", sans-serif;
+    font-size: 14px;
+    font-feature-settings: "tnum";
+}
+
+window#waybar {
+    /* nearly clear: HyprGlass draws the glass; this only needs to be visible
+     * enough (above its 0.05 alpha cutoff) to get glass behind it */
+    background: linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.07) 0%,
+        rgba(120, 200, 255, 0.07) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 16px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30);
+    color: #ffffff;
+}
+
+window#waybar.hidden {
+    opacity: 0.2;
+}
+
+tooltip {
+    background: linear-gradient(to bottom,
+        rgba(235, 248, 255, 0.92) 0%,
+        rgba(210, 236, 255, 0.92) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+}
+
+tooltip label {
+    color: #0b2a45;
+    text-shadow: none;
+}
+
+/* soft glass bubbles */
+#custom-clock,
+#custom-workspace,
+#cpu,
+#memory,
+#battery,
+#pulseaudio,
+#network,
+#tray,
+#taskbar button {
+    margin: 5px 3px;
+    padding: 0 11px;
+    border-radius: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    background: linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.10) 0%,
+        rgba(100, 190, 255, 0.08) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20);
+    color: #f4fbff;
+    text-shadow: 0 1px 2px rgba(0, 40, 80, 0.35);
+}
+
+/* the clock: a gentle aqua-green tint */
+#custom-clock {
+    padding: 0 18px;
+    font-weight: bold;
+    background: linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(94, 230, 216, 0.12) 60%,
+        rgba(139, 212, 72, 0.18) 100%);
+}
+
+#taskbar button {
+    padding: 0 6px;
+    margin: 5px 2px;
+}
+
+#taskbar button:hover {
+    background: linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.30) 0%,
+        rgba(120, 210, 255, 0.18) 100%);
+}
+
+#taskbar button.active {
+    border-color: rgba(255, 255, 255, 0.40);
+    background: linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.32) 0%,
+        rgba(79, 195, 247, 0.22) 100%);
+}
+
+#battery.charging,
+#battery.plugged {
+    background: linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.20) 0%,
+        rgba(139, 212, 72, 0.20) 100%);
+}
+
+#battery.warning:not(.charging) {
+    background: linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.20) 0%,
+        rgba(255, 170, 60, 0.30) 100%);
+}
+
+#battery.critical:not(.charging) {
+    background: linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.20) 0%,
+        rgba(240, 70, 70, 0.40) 100%);
+}
+
+#pulseaudio.muted,
+#network.disconnected {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+#tray > .needs-attention {
+    background-color: rgba(255, 140, 60, 0.45);
+    border-radius: 8px;
+}
+
+/* current workspace: a sky-blue tint */
+#custom-workspace {
+    font-weight: bold;
+    background: linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(79, 195, 247, 0.18) 100%);
+}
