@@ -724,7 +724,11 @@ hl.bind("ALT + Print",  screenshot("$(hyprctl activewindow -j | jq -r '\"\\(.at[
 local quit = exec("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'")
 hl.bind(mainMod .. " + SHIFT + E", quit)
 hl.bind("CTRL + ALT + Delete",     quit)
-hl.bind(mainMod .. " + SHIFT + P", hl.dsp.dpms({ action = "off" })) -- power off monitors; any key wakes them
+-- power off monitors; any key wakes them. Waits a moment first: releasing
+-- Mod+Shift+P is itself a key event and would wake them straight back up.
+hl.bind(mainMod .. " + SHIFT + P", function ()
+    hl.timer(function () hl.dispatch(hl.dsp.dpms({ action = "off" })) end, { timeout = 700, type = "oneshot" })
+end)
 
 ---- SCRATCHPADS (pyprland; scratchpads are set up in ~/.config/pypr/config.toml) ----
 -- Not in niri. pypr-client talks to the pypr daemon started in AUTOSTART.
@@ -762,6 +766,19 @@ hl.bind(mainMod .. " + SHIFT + M", scratchpadToggle("music", "org.gnome.Music"))
 -- Discord fills it like a 100%-wide window (dwindle with one window).
 hl.workspace_rule({ workspace = "special:discord", layout = "dwindle" })
 hl.window_rule({ name = "discord-scratchpad", match = { class = "^discord$" }, workspace = "special:discord silent" })
+
+-- The screen-share picker (xdg-desktop-portal-hyprland) draws blank on the
+-- HDMI monitor (likely its 1.25 scale), and otherwise opens inside whatever
+-- workspace has focus, e.g. Discord's scratchpad. Always open it on the laptop
+-- screen, floating, centred and focused.
+hl.window_rule({
+    name         = "share-picker",
+    match        = { class = "^hyprland-share-picker$" },
+    monitor      = "eDP-1",
+    float        = true,
+    center       = true,
+    stay_focused = true,
+})
 hl.bind(mainMod .. " + SHIFT + D", function ()
     local running = false
     for _, w in ipairs(hl.get_windows()) do
