@@ -1,4 +1,4 @@
--- Hyprland config (Lua, Hyprland 0.56)
+-- Hyprland config (Lua, Hyprland 0.57)
 -- Programs and keybinds match the niri setup; colors follow niri's
 -- mauve -> teal focus ring.
 -- Wiki: https://wiki.hypr.land/Configuring/Start/
@@ -11,9 +11,8 @@ local configDir = (os.getenv("XDG_CONFIG_HOME") or (os.getenv("HOME") .. "/.conf
 ---- THEME  ----
 ----------------
 
--- One place for every color, so the borders, glow, groups and the
--- Phantomat HUD (spatialoverview.lua reads `theme`) stay in step.
-theme = {
+-- One place for every color, so the borders, glow and groups stay in step.
+local theme = {
     mauve    = "dc8af1",
     teal     = "0fa0a0",
     peach    = "ffc87f",
@@ -104,7 +103,8 @@ hl.config({
 
         allow_tearing = false,
 
-        layout = "dwindle",
+        -- niri-style: each workspace is an endless horizontal strip of columns
+        layout = "scrolling",
     },
 
     decoration = {
@@ -141,7 +141,7 @@ hl.config({
         blur = {
             enabled           = true,
             size              = 7,
-            passes            = 3,
+            passes            = 2,     -- niri: passes 2
             noise             = 0.015,
             contrast          = 0.95,
             brightness        = 0.85,
@@ -150,7 +150,10 @@ hl.config({
             popups            = true,
             special           = true,
             new_optimizations = true,
-            xray              = false,
+            -- niri: xray true. Windows show the blurred wallpaper (computed once)
+            -- instead of re-blurring whatever is behind each one every frame,
+            -- which is what kept the overview zoom from hitting full frame rate.
+            xray              = true,
         },
     },
 
@@ -178,35 +181,37 @@ hl.config({
 })
 
 -- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Animations/
--- Springs for things that move, short eased fades for things that appear.
+-- Timed to match niri's defaults. Springs ignore `speed`: their length comes
+-- from stiffness alone. niri uses critically damped springs (damping ratio 1,
+-- so dampening = 2 * sqrt(stiffness)) that settle in about 0.2 s.
+-- Beziers take `speed` in tenths of a second.
 hl.curve("easeOutQuint",   { type = "bezier", points = { {0.23, 1},    {0.32, 1}    } })
 hl.curve("easeOutExpo",    { type = "bezier", points = { {0.16, 1},    {0.3, 1}     } })
-hl.curve("easeInOutCubic", { type = "bezier", points = { {0.65, 0.05}, {0.36, 1}    } })
+hl.curve("easeOutQuad",    { type = "bezier", points = { {0.5, 1},     {0.89, 1}    } })
 hl.curve("linear",         { type = "bezier", points = { {0, 0},       {1, 1}       } })
-hl.curve("almostLinear",   { type = "bezier", points = { {0.5, 0.5},   {0.75, 1}    } })
-hl.curve("quick",          { type = "bezier", points = { {0.15, 0},    {0.1, 1}     } })
-hl.curve("smooth",         { type = "spring", mass = 1, stiffness = 90,  dampening = 17 })
-hl.curve("bouncy",         { type = "spring", mass = 1, stiffness = 120, dampening = 15 })
+hl.curve("niriWorkspace",  { type = "spring", mass = 1, stiffness = 1000, dampening = 63 })
+hl.curve("niriMove",       { type = "spring", mass = 1, stiffness = 800,  dampening = 57 })
 
-hl.animation({ leaf = "global",        enabled = true,  speed = 10,   bezier = "default" })
-hl.animation({ leaf = "border",        enabled = true,  speed = 5.4,  bezier = "easeOutQuint" })
+hl.animation({ leaf = "global",        enabled = true,  speed = 2,    bezier = "easeOutQuint" })
+hl.animation({ leaf = "border",        enabled = true,  speed = 1.5,  bezier = "easeOutQuint" })
 hl.animation({ leaf = "borderangle",   enabled = true,  speed = 60,   bezier = "linear",       style = "loop" })
-hl.animation({ leaf = "windows",       enabled = true,  speed = 4.8,  spring = "smooth" })
-hl.animation({ leaf = "windowsIn",     enabled = true,  speed = 4.1,  spring = "bouncy",       style = "popin 85%" })
-hl.animation({ leaf = "windowsOut",    enabled = true,  speed = 1.6,  bezier = "easeOutExpo",  style = "popin 85%" })
-hl.animation({ leaf = "windowsMove",   enabled = true,  speed = 4.8,  spring = "smooth" })
-hl.animation({ leaf = "fadeIn",        enabled = true,  speed = 1.8,  bezier = "almostLinear" })
-hl.animation({ leaf = "fadeOut",       enabled = true,  speed = 1.5,  bezier = "almostLinear" })
-hl.animation({ leaf = "fade",          enabled = true,  speed = 3,    bezier = "quick" })
-hl.animation({ leaf = "fadeDim",       enabled = true,  speed = 3,    bezier = "easeOutQuint" })
-hl.animation({ leaf = "layers",        enabled = true,  speed = 3.8,  bezier = "easeOutQuint" })
-hl.animation({ leaf = "layersIn",      enabled = true,  speed = 4,    bezier = "easeOutExpo",  style = "slide" })
-hl.animation({ leaf = "layersOut",     enabled = true,  speed = 1.5,  bezier = "linear",       style = "fade" })
-hl.animation({ leaf = "fadeLayersIn",  enabled = true,  speed = 1.8,  bezier = "almostLinear" })
-hl.animation({ leaf = "fadeLayersOut", enabled = true,  speed = 1.4,  bezier = "almostLinear" })
-hl.animation({ leaf = "workspaces",    enabled = true,  speed = 4,    spring = "smooth",       style = "slidefade 12%" })
-hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 4,  spring = "smooth",       style = "slidevert" })
-hl.animation({ leaf = "zoomFactor",    enabled = true,  speed = 7,    bezier = "quick" })
+-- niri window-movement / horizontal-view-movement / window-resize
+hl.animation({ leaf = "windows",       enabled = true,  speed = 2,    spring = "niriMove" })
+hl.animation({ leaf = "windowsMove",   enabled = true,  speed = 2,    spring = "niriMove" })
+-- niri window-open: 150 ms linear (your config); window-close: 150 ms ease-out-quad
+hl.animation({ leaf = "windowsIn",     enabled = true,  speed = 1.5,  bezier = "linear",       style = "popin 85%" })
+hl.animation({ leaf = "windowsOut",    enabled = true,  speed = 1.5,  bezier = "easeOutQuad",  style = "popin 85%" })
+hl.animation({ leaf = "fadeIn",        enabled = true,  speed = 1.5,  bezier = "linear" })
+hl.animation({ leaf = "fadeOut",       enabled = true,  speed = 1.5,  bezier = "easeOutQuad" })
+hl.animation({ leaf = "fade",          enabled = true,  speed = 1.5,  bezier = "easeOutQuint" })
+hl.animation({ leaf = "fadeDim",       enabled = true,  speed = 1.5,  bezier = "easeOutQuint" })
+hl.animation({ leaf = "layers",        enabled = true,  speed = 1.5,  bezier = "easeOutQuint" })
+hl.animation({ leaf = "layersIn",      enabled = true,  speed = 1.5,  bezier = "easeOutExpo",  style = "slide" })
+hl.animation({ leaf = "layersOut",     enabled = true,  speed = 1.5,  bezier = "easeOutQuad",  style = "fade" })
+-- niri workspace-switch; workspaces stack vertically
+hl.animation({ leaf = "workspaces",    enabled = true,  speed = 2,    spring = "niriWorkspace", style = "slidevert" })
+hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 2,  spring = "niriWorkspace", style = "slidevert" })
+hl.animation({ leaf = "zoomFactor",    enabled = true,  speed = 2,    bezier = "easeOutQuint" })
 
 -- See https://wiki.hypr.land/Configuring/Layouts/Dwindle-Layout/
 hl.config({
@@ -224,10 +229,17 @@ hl.config({
 })
 
 -- See https://wiki.hypr.land/Configuring/Layouts/Scrolling-Layout/
--- (set general.layout = "scrolling" above for a niri-like layout)
+-- Mirrors niri's layout {} block.
 hl.config({
     scrolling = {
-        fullscreen_on_one_column = true,
+        column_width             = 0.5,                  -- default-column-width 0.5
+        explicit_column_widths   = "0.333, 0.5, 0.667",  -- preset-column-widths (Mod+R)
+        focus_fit_method         = 1,     -- scroll just enough to show the focused column
+                                          -- (closest to center-focused-column "on-overflow")
+        follow_focus             = true,
+        wrap_focus               = false, -- niri doesn't wrap around at the ends
+        wrap_swapcol             = false,
+        fullscreen_on_one_column = false, -- a lone column keeps its width, like niri
     },
 })
 
@@ -245,6 +257,8 @@ hl.config({
         animate_manual_resizes   = true,
         animate_mouse_windowdragging = false, -- dragging should feel 1:1
         focus_on_activate        = true,
+        key_press_enables_dpms   = true,  -- any key wakes monitors after Mod+Shift+P
+        mouse_move_enables_dpms  = true,
     },
 })
 
@@ -261,87 +275,372 @@ hl.config({
         kb_options = "",
         kb_rules   = "",
 
-        follow_mouse = 1,
+        numlock_by_default = true,        -- niri: numlock
+
+        -- niri doesn't focus on hover: the window under the pointer gets
+        -- mouse input, keyboard focus moves on click.
+        follow_mouse = 2,
 
         sensitivity = 0, -- -1.0 - 1.0, 0 means no modification.
 
         touchpad = {
-            natural_scroll = true,
+            tap_to_click   = true,        -- niri: tap
+            natural_scroll = true,        -- niri: natural-scroll
         },
+    },
+
+    -- niri doesn't warp the pointer to the focused window
+    cursor = {
+        no_warps = true,
+    },
+
+    -- niri: cooldown-ms=150 on the Mod+wheel workspace binds
+    binds = {
+        scroll_event_delay = 150,
     },
 })
 
--- Three-finger horizontal swipe switches workspaces
-hl.gesture({
-    fingers = 3,
-    direction = "horizontal",
-    action = "workspace"
-})
+-- Touchpad gestures, as in niri:
+--   3 fingers left/right scrolls the strip of columns
+--   3 fingers up/down switches workspaces
+--   4 fingers up/down opens the overview (see SCROLLOVERVIEW below)
+hl.gesture({ fingers = 3, direction = "horizontal", action = "scroll_move" })
+-- (the vertical swipes are set up next to the workspace binds below)
 
 
 ---------------------
 ---- KEYBINDINGS ----
 ---------------------
 
+-- A 1:1 translation of the binds {} block in the niri config
+-- (home-config/modules/alex-desktop/niri/dotfiles/config.kdl), using the
+-- scrolling layout's messages for niri's column actions.
+-- See https://wiki.hypr.land/Configuring/Basics/Binds/
+
 local mainMod = "SUPER"
 
--- See https://wiki.hypr.land/Configuring/Basics/Binds/
--- Programs (same keys as niri)
-hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(terminal))
-hl.bind(mainMod .. " + D", hl.dsp.exec_cmd(menu))
-hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager))
+local function exec(cmd)  return hl.dsp.exec_cmd(cmd) end
+local function msg(m)     return hl.dsp.layout(m) end   -- scrolling layout message
 
--- Windows
-hl.bind(mainMod .. " + Q",         hl.dsp.window.close())
-hl.bind(mainMod .. " + V",         hl.dsp.window.float({ action = "toggle" }))
-hl.bind(mainMod .. " + F",         hl.dsp.window.fullscreen())
-hl.bind(mainMod .. " + P",         hl.dsp.window.pseudo())
-hl.bind(mainMod .. " + S",         hl.dsp.layout("togglesplit"))    -- dwindle only
+-- Run a layout message repeatedly. At the first/last column "focus" and
+-- "swapcol" stop moving (wrapping is off), so this lands on the end.
+local function toEnd(m)
+    return function()
+        for _ = 1, 50 do hl.dispatch(hl.dsp.layout(m)) end
+    end
+end
 
--- Exit Hyprland
-hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"))
+---- Programs ----
+hl.bind(mainMod .. " + T",         exec(terminal))
+hl.bind(mainMod .. " + ALT + T",   exec("cool-retro-term"))
+hl.bind(mainMod .. " + D",         exec(menu))
+hl.bind(mainMod .. " + E",         exec(fileManager .. " -w"))
+hl.bind(mainMod .. " + ALT + L",   exec("swaylock"))
+hl.bind(mainMod .. " + ALT + P",   exec("wlogout"))
+hl.bind(mainMod .. " + CTRL + H",  exec("systemctl hibernate"))
+hl.bind(mainMod .. " + SHIFT + C", exec("wl-color-picker"))
+hl.bind(mainMod .. " + M",         exec("xdotool key Alt_R"))
+hl.bind(mainMod .. " + Space",     exec("xdotool key Alt_R"))
 
--- Move focus with mainMod + arrows / hjkl, move windows with mainMod + CTRL
+---- Volume (niri: 10% steps, work on the lock screen) ----
+hl.bind("XF86AudioRaiseVolume", exec("wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+"),          { locked = true, repeating = true })
+hl.bind("XF86AudioLowerVolume", exec("wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-"),          { locked = true, repeating = true })
+hl.bind("XF86AudioMute",        exec("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),          { locked = true })
+hl.bind("XF86AudioMicMute",     exec("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),        { locked = true })
+
+---- Overview: Mod+O / Mod+Tab (bound in SCROLLOVERVIEW below) ----
+
+---- Windows ----
+hl.bind(mainMod .. " + Q", hl.dsp.window.close())
+
+-- Focus: left/right between columns, up/down within a column
+-- Move:  Ctrl + left/right moves the column, Ctrl + up/down the window
+--        (no Mod+Ctrl+H: that's hibernate, as in niri)
 local directions = {
-    left = "left", right = "right", up = "up", down = "down",
-    H = "left", L = "right", K = "up", J = "down",
+    { keys = { "left",  "H" }, focus = "focus l", move = msg("swapcol l") },
+    { keys = { "right", "L" }, focus = "focus r", move = msg("swapcol r") },
+    { keys = { "up",    "K" }, focus = "focus u", move = hl.dsp.window.move({ direction = "up" }) },
+    { keys = { "down",  "J" }, focus = "focus d", move = hl.dsp.window.move({ direction = "down" }) },
 }
-for key, dir in pairs(directions) do
-    hl.bind(mainMod .. " + " .. key,             hl.dsp.focus({ direction = dir }))
-    hl.bind(mainMod .. " + CTRL + " .. key,      hl.dsp.window.move({ direction = dir }))
+for _, d in ipairs(directions) do
+    for _, key in ipairs(d.keys) do
+        hl.bind(mainMod .. " + " .. key, msg(d.focus))
+        if key ~= "H" then
+            hl.bind(mainMod .. " + CTRL + " .. key, d.move)
+        end
+    end
 end
 
--- Switch workspaces with mainMod + [0-9]
--- Move active window to a workspace with mainMod + SHIFT + [0-9]
-for i = 1, 10 do
-    local key = i % 10 -- 10 maps to key 0
-    hl.bind(mainMod .. " + " .. key,             hl.dsp.focus({ workspace = i }))
-    hl.bind(mainMod .. " + SHIFT + " .. key,     hl.dsp.window.move({ workspace = i }))
+-- First / last column
+hl.bind(mainMod .. " + Home",        toEnd("focus l"))
+hl.bind(mainMod .. " + End",         toEnd("focus r"))
+hl.bind(mainMod .. " + CTRL + Home", toEnd("swapcol l"))
+hl.bind(mainMod .. " + CTRL + End",  toEnd("swapcol r"))
+
+---- Monitors: Shift focuses, Shift+Ctrl moves the window there ----
+local monitorDirs = {
+    left = "l", right = "r", up = "u", down = "d",
+    H = "l", L = "r", K = "u", J = "d",
+}
+for key, dir in pairs(monitorDirs) do
+    hl.bind(mainMod .. " + SHIFT + " .. key,        hl.dsp.focus({ monitor = dir }))
+    hl.bind(mainMod .. " + SHIFT + CTRL + " .. key, hl.dsp.window.move({ monitor = dir }))
 end
 
--- Special workspace (scratchpad)
-hl.bind(mainMod .. " + grave",         hl.dsp.workspace.toggle_special("magic"))
-hl.bind(mainMod .. " + SHIFT + grave", hl.dsp.window.move({ workspace = "special:magic" }))
+---- Workspaces: niri's dynamic, per-monitor vertical stack ----
+-- Each monitor has its own ordered column of workspaces with an empty one
+-- below the last (and, like niri's empty-workspace-above-first, an empty one
+-- above the first). Hyprland workspace ids are global, so the order on a
+-- monitor is just its workspaces sorted by id; ids are never shown anywhere.
+-- Hyprland already removes empty workspaces you leave, like niri does.
 
--- Scroll through existing workspaces with mainMod + scroll
-hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
-hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))
+local function isNormal(ws)
+    return ws and not ws.special and ws.id > 0
+end
 
--- Move/resize windows with mainMod + LMB/RMB and dragging
+-- This monitor's workspaces, top to bottom, as a list of slots
+-- { id = n } plus { above = true } / { below = true } for the empty ends.
+local function workspaceStack()
+    local mon  = hl.get_active_monitor()
+    local cur  = mon.active_workspace
+    local list = {}
+    for _, ws in ipairs(hl.get_workspaces()) do
+        if isNormal(ws) and ws.monitor.name == mon.name then
+            list[#list + 1] = { id = ws.id, windows = ws.windows }
+        end
+    end
+    table.sort(list, function(a, b) return a.id < b.id end)
+
+    local slots = {}
+    if #list > 0 and list[1].windows > 0 then slots[1] = { above = true } end
+    for _, ws in ipairs(list) do slots[#slots + 1] = ws end
+    if #list > 0 and list[#list].windows > 0 then slots[#slots + 1] = { below = true } end
+
+    local index = 1
+    for i, s in ipairs(slots) do
+        if isNormal(cur) and s.id == cur.id then index = i end
+    end
+    return slots, index, list, mon
+end
+
+local function usedIds()
+    local used = {}
+    for _, ws in ipairs(hl.get_workspaces()) do used[ws.id] = ws end
+    return used
+end
+
+-- Turn a slot into a real workspace id, making room above the first
+-- workspace when needed by renumbering this monitor's workspaces
+-- (change_id keeps their windows and columns as they are).
+local function slotId(slot, list, mon)
+    if slot.id then return slot.id end
+    local used = usedIds()
+    if slot.below then
+        local id = list[#list].id + 1
+        while used[id] do id = id + 1 end
+        return id
+    end
+    -- above: any free id below the first one will do
+    for id = list[1].id - 1, 1, -1 do
+        if not used[id] then return id end
+    end
+    -- none free: shift this monitor's workspaces down the id range
+    local shift = 1
+    local function clash(id)
+        return used[id] and used[id].monitor.name ~= mon.name
+    end
+    while true do
+        local ok = true
+        for _, ws in ipairs(list) do
+            if clash(ws.id + shift) then ok = false; break end
+        end
+        if ok then break end
+        shift = shift + 1
+    end
+    for i = #list, 1, -1 do
+        hl.dispatch(hl.dsp.workspace.change_id({ workspace = list[i].id, id = list[i].id + shift }))
+    end
+    used = usedIds()
+    for id = list[1].id + shift - 1, 1, -1 do
+        if not used[id] then return id end
+    end
+end
+
+-- Go to (or, with move = true, take the focused window to) the workspace
+-- `delta` steps up/down the stack, or the n-th one from the top (`nth`).
+local function workspaceGo(opts)
+    return function()
+        local slots, index, list, mon = workspaceStack()
+        if #slots == 0 then return end
+        local target
+        if opts.nth then
+            target = math.min(opts.nth, #slots)
+        else
+            target = index + opts.delta
+        end
+        if target < 1 or target > #slots or target == index then return end
+        if opts.move and not hl.get_active_window() then return end
+
+        local id = slotId(slots[target], list, mon)
+        if not id then return end
+        if opts.move then
+            hl.dispatch(hl.dsp.window.move({ workspace = id }))
+        else
+            hl.dispatch(hl.dsp.focus({ workspace = id }))
+        end
+    end
+end
+
+for _, key in ipairs({ "Page_Down", "U" }) do
+    hl.bind(mainMod .. " + " .. key,        workspaceGo({ delta = 1 }))
+    hl.bind(mainMod .. " + CTRL + " .. key, workspaceGo({ delta = 1, move = true }))
+end
+for _, key in ipairs({ "Page_Up", "I" }) do
+    hl.bind(mainMod .. " + " .. key,        workspaceGo({ delta = -1 }))
+    hl.bind(mainMod .. " + CTRL + " .. key, workspaceGo({ delta = -1, move = true }))
+end
+
+-- Mod + 1…9: the n-th workspace on this monitor, counted from the top as
+-- niri does (so with the empty one above, Mod+1 is that empty one).
+-- Mod + Ctrl + 1…9 takes the window there.
+for i = 1, 9 do
+    hl.bind(mainMod .. " + " .. i,        workspaceGo({ nth = i }))
+    hl.bind(mainMod .. " + CTRL + " .. i, workspaceGo({ nth = i, move = true }))
+end
+
+-- Keep every monitor's workspace ids contiguous in a range of its own
+-- (monitor 0: 1001, 1002, …; monitor 1: 2001, …), with the id just above the
+-- first and just below the last always free. Then "the id ±1" is exactly
+-- niri's neighbour, and Hyprland's own 1:1 touchpad swipe (set to use ids,
+-- see workspace_swipe_use_r below) can follow your fingers onto a new empty
+-- workspace above the first or below the last.
+-- Runs just after any workspace change, never in the middle of one.
+local tidyPending = false
+local function tidyWorkspaceIds()
+    tidyPending = false
+    local byMonitor, monitorIds = {}, {}
+    for _, mon in ipairs(hl.get_monitors()) do monitorIds[mon.name] = mon.id end
+    for _, ws in ipairs(hl.get_workspaces()) do
+        if isNormal(ws) and monitorIds[ws.monitor.name] then
+            local name = ws.monitor.name
+            byMonitor[name] = byMonitor[name] or {}
+            table.insert(byMonitor[name], ws.id)
+        end
+    end
+
+    local moves = {}
+    for name, ids in pairs(byMonitor) do
+        table.sort(ids)
+        local base = 1000 * (monitorIds[name] + 1)
+        for i, id in ipairs(ids) do
+            if id ~= base + i then moves[#moves + 1] = { from = id, to = base + i } end
+        end
+    end
+    if #moves == 0 then return end
+
+    -- Two steps via spare ids, so no move lands on an id still in use
+    for i, m in ipairs(moves) do
+        hl.dispatch(hl.dsp.workspace.change_id({ workspace = m.from, id = 900000 + i }))
+    end
+    for i, m in ipairs(moves) do
+        hl.dispatch(hl.dsp.workspace.change_id({ workspace = 900000 + i, id = m.to }))
+    end
+end
+
+local function scheduleTidy()
+    if tidyPending then return end
+    tidyPending = true
+    hl.timer(tidyWorkspaceIds, { timeout = 1, type = "oneshot" })
+end
+
+for _, event in ipairs({ "workspace.active", "workspace.created", "workspace.removed",
+                         "workspace.move_to_monitor", "monitor.added", "monitor.removed",
+                         "hyprland.start" }) do
+    hl.on(event, scheduleTidy)
+end
+
+-- 3 fingers up/down: workspace swipe that follows your fingers. Registered in
+-- the SCROLLOVERVIEW section below, so that with the plugin it also works
+-- inside the overview.
+hl.config({
+    gestures = {
+        workspace_swipe_use_r      = true, -- neighbours are id ± 1 (see above)
+        workspace_swipe_create_new = true, -- swiping past either end makes an empty one
+        workspace_swipe_forever    = true, -- one long swipe can pass several workspaces, like niri
+    },
+})
+
+---- Mouse wheel ----
+-- Mod + wheel: workspaces;  Mod + Shift + wheel / horizontal wheel: columns
+hl.bind(mainMod .. " + mouse_down",                workspaceGo({ delta = 1 }))
+hl.bind(mainMod .. " + mouse_up",                  workspaceGo({ delta = -1 }))
+hl.bind(mainMod .. " + CTRL + mouse_down",         workspaceGo({ delta = 1, move = true }))
+hl.bind(mainMod .. " + CTRL + mouse_up",           workspaceGo({ delta = -1, move = true }))
+hl.bind(mainMod .. " + mouse_right",               msg("focus r"))
+hl.bind(mainMod .. " + mouse_left",                msg("focus l"))
+hl.bind(mainMod .. " + CTRL + mouse_right",        msg("swapcol r"))
+hl.bind(mainMod .. " + CTRL + mouse_left",         msg("swapcol l"))
+hl.bind(mainMod .. " + SHIFT + mouse_down",        msg("focus r"))
+hl.bind(mainMod .. " + SHIFT + mouse_up",          msg("focus l"))
+hl.bind(mainMod .. " + CTRL + SHIFT + mouse_down", msg("swapcol r"))
+hl.bind(mainMod .. " + CTRL + SHIFT + mouse_up",   msg("swapcol l"))
+
+-- Mod + drag moves a window, Mod + right-drag resizes it
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
--- Screenshots (to the clipboard): Print = region, SHIFT + Print = whole screen
-hl.bind("Print",         hl.dsp.exec_cmd("grim -g \"$(slurp -d -b 11111b88 -c dc8af1ff -w 2)\" - | wl-copy"))
-hl.bind("SHIFT + Print", hl.dsp.exec_cmd("grim - | wl-copy"))
+---- Columns ----
+hl.bind(mainMod .. " + bracketleft",  msg("consume_or_expel prev"))
+hl.bind(mainMod .. " + bracketright", msg("consume_or_expel next"))
+hl.bind(mainMod .. " + comma",        msg("consume"))   -- pull the next column's window in
+hl.bind(mainMod .. " + period",       msg("expel"))     -- push a window out into its own column
 
--- Multimedia keys for volume and brightness
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      { locked = true, repeating = true })
-hl.bind("XF86AudioMute",        hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     { locked = true, repeating = true })
-hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessUp",  hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"),                  { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown",hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),                  { locked = true, repeating = true })
+hl.bind(mainMod .. " + R",            msg("colresize +conf"))  -- cycle preset widths
+hl.bind(mainMod .. " + minus",        msg("colresize -0.1"))
+hl.bind(mainMod .. " + equal",        msg("colresize +0.1"))
+hl.bind(mainMod .. " + SHIFT + minus", hl.dsp.window.resize({ x = 0, y = -80, relative = true }))
+hl.bind(mainMod .. " + SHIFT + equal", hl.dsp.window.resize({ x = 0, y =  80, relative = true }))
+
+hl.bind(mainMod .. " + F",            hl.dsp.window.fullscreen({ mode = "maximized" })) -- maximize-column
+hl.bind(mainMod .. " + SHIFT + F",    hl.dsp.window.fullscreen())                       -- fullscreen-window
+hl.bind(mainMod .. " + CTRL + F",     msg("fit expand"))   -- expand-column-to-available-width
+hl.bind(mainMod .. " + C",            msg("center"))       -- center-column
+hl.bind(mainMod .. " + CTRL + C",     msg("fit visible"))  -- center-visible-columns
+
+hl.bind(mainMod .. " + W",            hl.dsp.group.toggle()) -- tabbed column (as a Hyprland group)
+
+---- Floating ----
+hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
+-- Switch focus between floating and tiled windows
+hl.bind(mainMod .. " + SHIFT + V", function()
+    local ok, active = pcall(hl.get_window, "activewindow")
+    if ok and active and active.floating then
+        hl.dispatch(hl.dsp.window.cycle_next({ tiled = true }))
+    else
+        hl.dispatch(hl.dsp.window.cycle_next({ floating = true }))
+    end
+end)
+
+---- Screenshots, saved where niri saves them and copied to the clipboard ----
+local function screenshot(geometry)
+    return exec(
+        'dir="$HOME/Pictures/Screenshots"; mkdir -p "$dir"; ' ..
+        'f="$dir/Screenshot from $(date "+%Y-%m-%d %H-%M-%S").png"; ' ..
+        'grim ' .. (geometry and ('-g "' .. geometry .. '" ') or '') .. '"$f" && wl-copy < "$f"')
+end
+hl.bind("Print",        screenshot("$(slurp -d -b 11111b88 -c dc8af1ff -w 2)")) -- pick a region
+hl.bind("CTRL + Print", screenshot(nil))                                         -- whole screen
+hl.bind("ALT + Print",  screenshot("$(hyprctl activewindow -j | jq -r '\"\\(.at[0]),\\(.at[1]) \\(.size[0])x\\(.size[1])\"')")) -- focused window
+
+---- Session ----
+local quit = exec("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'")
+hl.bind(mainMod .. " + SHIFT + E", quit)
+hl.bind("CTRL + ALT + Delete",     quit)
+hl.bind(mainMod .. " + SHIFT + P", hl.dsp.dpms({ action = "off" })) -- power off monitors; any key wakes them
+
+---- Not in niri's binds, kept so the laptop keys keep working ----
+hl.bind("XF86MonBrightnessUp",  exec("brightnessctl -e4 -n2 set 5%+"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown",exec("brightnessctl -e4 -n2 set 5%-"), { locked = true, repeating = true })
 
 -- Media keys (requires playerctl)
 hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })
@@ -407,16 +706,62 @@ hl.layer_rule({
 })
 
 
--------------------
----- PHANTOMAT ----
--------------------
+------------------------
+---- SCROLLOVERVIEW ----
+------------------------
 
--- Zoomable infinite-canvas plugin, built by home-manager
--- (alex-desktop.hyprland.phantomat). phantomat-plugin.lua holds the Nix store
--- path of the build; it is absent when the plugin is disabled. Loaded last so
--- its keybinds can override the ones above.
-local ok, pluginPath = pcall(dofile, configDir .. "/phantomat-plugin.lua")
+-- Niri-like overview of all workspaces, built by home-manager
+-- (alex-desktop.hyprland.scrolloverview). scrolloverview-plugin.lua holds the
+-- Nix store path of the build; it is absent when the plugin is disabled.
+-- Wiki: https://github.com/yayuuu/hyprland-scroll-overview/wiki
+local ok, pluginPath = pcall(dofile, configDir .. "/scrolloverview-plugin.lua")
 if ok and type(pluginPath) == "string" then
     hl.plugin.load(pluginPath)
-    dofile(configDir .. "/spatialoverview.lua")
+end
+
+-- Hyprland parses the config again once the plugin is in; until then (or
+-- without the plugin) none of this applies.
+local function scrolloverviewLoaded()
+    for _, plugin in ipairs(hl.get_loaded_plugins()) do
+        if plugin.name == "scrolloverview" then
+            return true
+        end
+    end
+    return false
+end
+
+if scrolloverviewLoaded() then
+    hl.config({
+        plugin = {
+            scrolloverview = {
+                scale            = 0.5,        -- how far the overview zooms out
+                workspace_gap    = 60,
+                layout           = "vertical", -- workspaces stacked like niri
+                gesture_distance = 300,
+                wallpaper        = 2,          -- wallpaper behind and on each workspace
+                blur             = true,
+                shadow = {
+                    enabled = true,
+                    range   = 40,
+                },
+            },
+        },
+    })
+
+    -- Same keys as niri's overview
+    local function toggleOverview()
+        hl.plugin.scrolloverview.overview("toggle all")
+    end
+    hl.bind(mainMod .. " + O",   toggleOverview)
+    hl.bind(mainMod .. " + TAB", toggleOverview)
+
+    -- Four-finger swipe up/down opens and closes it, as in niri
+    hl.plugin.scrolloverview.gesture({ fingers = 4, direction = "vertical" })
+
+    -- 3 fingers up/down: workspace swipe (patched in, see scrolloverview.nix).
+    -- Inside the overview it scrolls the workspaces under your fingers; outside
+    -- it is exactly Hyprland's own swipe.
+    hl.plugin.scrolloverview.gesture({ fingers = 3, direction = "vertical", action = "workspace" })
+else
+    hl.gesture({ fingers = 3, direction = "vertical", action = "workspace" })
 end

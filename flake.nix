@@ -6,9 +6,9 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    # Same pin as system-config: the Phantomat plugin must be built against the
-    # exact Hyprland the system runs (0.56.2; the plugin does not build on 0.57).
-    nixpkgs-hyprland.url = "github:nixos/nixpkgs/e7fe03cce61eebcf570cd294f70cefe3ad76feed";
+    # Same pin as system-config: the ScrollOverview plugin must be built against
+    # the exact Hyprland the system runs (0.57.1).
+    nixpkgs-hyprland.url = "github:nixos/nixpkgs/1d060086d60cb76a40cf37109f979d88a5bd6396";
 
     # Home manager
     home-manager.url = "github:nix-community/home-manager/release-25.05";

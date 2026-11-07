@@ -1,0 +1,140 @@
+diff --git a/IOverview.hpp b/IOverview.hpp
+index 288dc71..2698fe6 100644
+--- a/IOverview.hpp
++++ b/IOverview.hpp
+@@ -30,6 +30,9 @@ class IOverview {
+     virtual void  onSwipeUpdate(double delta) = 0;
+     virtual void  onSwipeEnd()                = 0;
+ 
++    // 1:1 workspace scrolling driven by a trackpad gesture; delta 0 = fingers lifted
++    virtual void  onWorkspaceSwipe(double delta) = 0;
++
+     virtual void  close()                  = 0;
+     virtual void  dismissTransient()                                = 0;
+     virtual bool  isClosing() const        = 0;
+diff --git a/OverviewGesture.cpp b/OverviewGesture.cpp
+index 3c74e3a..3c15504 100644
+--- a/OverviewGesture.cpp
++++ b/OverviewGesture.cpp
+@@ -59,3 +59,56 @@ void COverviewGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
+         OVERVIEW->resetSwipe();
+     m_overview.reset();
+ }
++
++#include <hyprland/src/managers/input/trackpad/gestures/WorkspaceSwipeGesture.hpp>
++#include <hyprland/src/config/ConfigValue.hpp>
++
++COverviewWorkspaceGesture::COverviewWorkspaceGesture() : m_fallback(makeUnique<CWorkspaceSwipeGesture>()) {}
++
++void COverviewWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
++    ITrackpadGesture::begin(e);
++    m_overview.reset();
++
++    const auto MONITOR  = Desktop::focusState()->monitor();
++    const auto OVERVIEW = MONITOR ? scrollOverviewForMonitor(MONITOR) : nullptr;
++    if (OVERVIEW && !OVERVIEW->isClosing()) {
++        m_overview = OVERVIEW;
++        return;
++    }
++
++    m_fallback->begin(e);
++}
++
++void COverviewWorkspaceGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
++    if (m_overview.expired()) {
++        m_fallback->update(e);
++        return;
++    }
++
++    const auto OVERVIEW = m_overview.lock();
++    if (!OVERVIEW || OVERVIEW->isClosing())
++        return;
++
++    // same sign convention as Hyprland's workspace swipe
++    static auto PSWIPEINVR = CConfigValue<::Config::INTEGER>("gestures:workspace_swipe_invert");
++    const float DELTA      = distance(e);
++    const float D          = *PSWIPEINVR ? -DELTA : DELTA;
++    if (D != 0.F)
++        OVERVIEW->onWorkspaceSwipe(D);
++}
++
++void COverviewWorkspaceGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
++    if (m_overview.expired()) {
++        m_fallback->end(e);
++        return;
++    }
++
++    const auto OVERVIEW = m_overview.lock();
++    m_overview.reset();
++    if (OVERVIEW && std::ranges::find(scrollOverviews(), OVERVIEW) != scrollOverviews().end())
++        OVERVIEW->onWorkspaceSwipe(0.0);
++}
++
++bool COverviewWorkspaceGesture::isDirectionSensitive() {
++    return true;
++}
+diff --git a/OverviewGesture.hpp b/OverviewGesture.hpp
+index d919c9d..a948e0c 100644
+--- a/OverviewGesture.hpp
++++ b/OverviewGesture.hpp
+@@ -17,3 +17,20 @@ class COverviewGesture : public ITrackpadGesture {
+     bool  m_firstUpdate = false;
+     WP<IOverview> m_overview;
+ };
++
++// Workspace swipe that follows the fingers inside the overview (like a touchpad
++// scroll there), and is Hyprland's normal workspace swipe everywhere else.
++class COverviewWorkspaceGesture : public ITrackpadGesture {
++  public:
++    COverviewWorkspaceGesture();
++    ~COverviewWorkspaceGesture() override = default;
++
++    void begin(const ITrackpadGesture::STrackpadGestureBegin& e) override;
++    void update(const ITrackpadGesture::STrackpadGestureUpdate& e) override;
++    void end(const ITrackpadGesture::STrackpadGestureEnd& e) override;
++    bool isDirectionSensitive() override;
++
++  private:
++    UP<ITrackpadGesture> m_fallback;
++    WP<IOverview>        m_overview;
++};
+diff --git a/main.cpp b/main.cpp
+index 6abeb23..7ef104c 100644
+--- a/main.cpp
++++ b/main.cpp
+@@ -537,6 +537,9 @@ static std::expected<void, std::string> applyOverviewGesture(size_t fingerCount,
+     if (action == "overview")
+         return g_pTrackpadGestures->addGesture(makeUnique<COverviewGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
+ 
++    if (action == "workspace")
++        return g_pTrackpadGestures->addGesture(makeUnique<COverviewWorkspaceGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
++
+     if (action == "unset")
+         return g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale, disableInhibit);
+ 
+diff --git a/scrollOverview.cpp b/scrollOverview.cpp
+index 4d52e99..0856feb 100644
+--- a/scrollOverview.cpp
++++ b/scrollOverview.cpp
+@@ -5669,3 +5669,9 @@ void CScrollOverview::onSwipeEnd() {
+     (*scale)    = ScrollOverview::Config::getScale(pMonitor.lock());
+     m_isSwiping = false;
+ }
++
++void CScrollOverview::onWorkspaceSwipe(double delta) {
++    if (images.empty() || viewportCurrentWorkspace >= images.size())
++        return;
++    trackpadSwipeWorkspace(delta);
++}
+diff --git a/scrollOverview.hpp b/scrollOverview.hpp
+index cb1f81c..3c4d8d9 100644
+--- a/scrollOverview.hpp
++++ b/scrollOverview.hpp
+@@ -45,6 +45,7 @@ class CScrollOverview : public IOverview {
+     void         resetSwipe() override;
+     void         onSwipeUpdate(double delta) override;
+     void         onSwipeEnd() override;
++    void         onWorkspaceSwipe(double delta) override;
+ 
+     // close without a selection
+     void         close() override;
